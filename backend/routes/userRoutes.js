@@ -3,9 +3,9 @@ const authController = require('../controllers/authController');
 const router = express.Router();
 const userController = require('../controllers/userController');
 
-// TODO REGISTER ROUTE
+// // TODO REGISTER ROUTE
 
-router.route('/register').post(userController.createUser);
+// router.route('/register').post(userController.createUser);
 
 // TODO LOGIN ROUTE
 

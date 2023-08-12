@@ -1,21 +1,26 @@
 const mongoose = require('mongoose');
 const validator = require('validator');
 const { Schema } = mongoose;
+const AppError = require('../utils/appError.js');
+
 const userModel = new Schema({
   firstName: {
     type: String,
-    required: [true, 'First name field should not be empty'],
+    required: [true, 'First name should not be empty'],
     trim: true,
   },
   lastName: {
     type: String,
-    required: [true, 'Last name field should not be empty'],
+    required: [true, 'Last name should not be empty'],
     trim: true,
   },
   email: {
     type: String,
-    required: [true, 'Email field should not be empty'],
-    validate: validator.isEmail,
+    required: [true, 'Email should not be empty'],
+    validate: {
+      validator: validator.isEmail,
+      message: 'Invalid email format',
+    },
     unique: [true, 'This user already exists'],
   },
   currentRoom: {
