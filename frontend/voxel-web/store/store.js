@@ -4,7 +4,7 @@ const useStore = create((set) => ({
   isLoggedInLoading: true,
   isLoggedIn: false,
   user: {},
-  setUser: (value) => set(() => value),
+  setUser: (value) => set(() => ({ user: value })),
   setIsLoggedInLoading: (value) => set(() => ({ isLoggedInLoading: value })),
   setIsLoggedIn: (value) => set((state) => ({ isLoggedIn: value })),
 }));

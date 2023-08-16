@@ -3,6 +3,7 @@ const { OAuth2Client } = require('google-auth-library');
 const axios = require('axios');
 const chalk = require('chalk');
 const jwt = require('jsonwebtoken');
+const AppError = require('../utils/appError');
 
 const googleOAuthClient = new OAuth2Client(
   process.env.GOOGLE_CLIENT_ID,
@@ -17,20 +18,9 @@ const signJWT = (id, email) => {
   return token;
 };
 
-const verifyJWT = () => {
-  const { authorization } = req.headers;
-
-  let id = undefined;
-
-  if (!authorization || !authorization.startsWith('Bearer')) {
-    return res.status(401).json({
-      status: 'fail',
-      data: {
-        message: 'Please Sign up/ Login to use this resource',
-      },
-    });
-  }
-  const [_, token] = authorization.split(' ');
+const verifyJWT = (req) => {
+  const { jwt: token } = req.cookies;
+  if (!token) return { decoded: null, currentJWT: null, error: 'No jwt token' };
   const decoded = jwt.decode(token);
   if (!decoded) {
     console.log('Decode token error');
@@ -54,6 +44,7 @@ exports.register = async (req, res) => {
 };
 
 exports.login = async (req, res) => {
+  console.log('Hit the login route');
   try {
     const resp = await axios.post('https://oauth2.googleapis.com/token', {
       code: req.body.data.code,
@@ -78,12 +69,12 @@ exports.login = async (req, res) => {
         expires: new Date(
           Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000
         ),
-        secure: process.env.NODE_ENV === 'development',
+        secure: process.env.NODE_ENV === 'production',
         httpOnly: true,
       };
 
       return res
-        .cookie('authorization', token, cookieOptions)
+        .cookie('jwt', token, cookieOptions)
         .status(200)
         .json({
           status: 'success',
@@ -116,8 +107,59 @@ exports.login = async (req, res) => {
   }
 };
 
-exports.authenticate = async (req, res, next) => {
+exports.isLoggedIn = async (req, res) => {
+  console.log('AT AUTHENTICATION ROUTE');
   try {
+    const authToken = verifyJWT(req);
+
+    if (authToken.error) {
+      res.status(401).json({
+        status: 'fail',
+        data: {
+          message: 'Please login',
+        },
+      });
+    } else {
+      const user = await User.findById(authToken?.decoded?.id);
+      res.status(200).json({
+        status: 'success',
+        data: {
+          user: {
+            firstName: user.firstName,
+            lastName: user.lastName,
+            nickName: user?.nickName,
+            profilePic: user.profilePic,
+            email: user.email,
+          },
+        },
+      });
+    }
+  } catch (err) {
+    console.log(err);
+    next(new AppError());
+  }
+};
+
+exports.authenticate = async (req, res, next) => {
+  console.log('AT AUTHENTICATION ROUTE');
+  try {
+    const authToken = verifyJWT(req);
+
+    if (authToken.error) {
+      next(
+        new AppError({
+          name: 'AUTH_ERR',
+          statusCode: 401,
+          message: 'Login to use this resource',
+        })
+      );
+    } else {
+      req.user = authToken?.decoded?.id;
+      req.email = authToken?.decoded?.email;
+    }
     next();
-  } catch (err) {}
+  } catch (err) {
+    console.log(err);
+    next(new AppError());
+  }
 };

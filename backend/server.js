@@ -31,8 +31,6 @@ io.on('connection', (socket) => {
   // TODO COMPLETE THIS AFTER SETUP;
 });
 
-if (process.env.NODE_ENV === 'dev') app.use(morgan('dev'));
-
 const port = process.env.PORT || 49152;
 server.listen(port, () => {
   console.log(

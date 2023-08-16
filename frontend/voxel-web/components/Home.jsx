@@ -1,22 +1,29 @@
+'use client';
+
 import { React } from 'react';
 import Nav from '@/components/Nav';
 import useStore from '@/store/store';
-import Image from 'next/image';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { RiLoader5Fill } from 'react-icons/ri';
 import { FaUser } from 'react-icons/fa';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import axios from 'axios';
 
 export default function Home() {
+  const setUser = useStore((state) => state.setUser);
   const user = useStore((state) => state.user);
+
   const [firstName, setFirstName] = useState(null);
   const [lastName, setLastName] = useState(null);
   const [nickName, setNickName] = useState(null);
 
   const [changeButton, setChangeButton] = useState(false);
   const [submitSpinner, setSubmitSpinner] = useState(false);
+  const firstNameRef = useRef(null);
+  const lastNameRef = useRef(null);
+  const nickNameRef = useRef(null);
 
   useEffect(() => {
     if (!nickName && !firstName && !lastName) setChangeButton(false);
@@ -24,11 +31,32 @@ export default function Home() {
       setChangeButton(true);
   });
 
-  const submitHandler = (e) => {
+  const submitHandler = async (e) => {
     e.preventDefault();
     setSubmitSpinner(true);
+    firstNameRef.current.value = '';
+    lastNameRef.current.value = '';
+    nickNameRef.current.value = '';
+
+    const resp = await axios(`${process.env.NEXT_PUBLIC_SERVER}/users/edit`, {
+      method: 'PATCH',
+      data: { lastName, firstName, nickName },
+    });
+    if (resp) setSubmitSpinner(false);
+    setUser(resp.data.data.user);
+    console.log(user);
     // TODO : Patch the user profile with first and last name as indicated
     // await userResp setSubmitSpinner(false);
+  };
+
+  const testHandler = async (e) => {
+    e.preventDefault();
+    try {
+      const resp = await axios(`${process.env.NEXT_PUBLIC_SERVER}/users/test`, {
+        withCredentials: true,
+      });
+      console.log(resp.data);
+    } catch (e) {}
   };
 
   return (
@@ -80,6 +108,7 @@ export default function Home() {
                 onChange={(e) => {
                   setFirstName(e.target.value);
                 }}
+                ref={firstNameRef}
               />
               <label htmlFor="lastName">Last Name</label>
               <Input
@@ -91,6 +120,7 @@ export default function Home() {
                 onChange={(e) => {
                   setLastName(e.target.value);
                 }}
+                ref={lastNameRef}
               />
               <label htmlFor="nickname">Nickname</label>
               <Input
@@ -102,6 +132,7 @@ export default function Home() {
                 onChange={(e) => {
                   setNickName(e.target.value);
                 }}
+                ref={nickNameRef}
               />
 
               <h2 className="text-xl mt-4 font-extralight">XP</h2>
@@ -122,6 +153,7 @@ export default function Home() {
                 )}
                 Save Changes
               </Button>
+              {/* <Button onClick={testHandler}>Test</Button> */}
             </form>
           </div>
         </section>

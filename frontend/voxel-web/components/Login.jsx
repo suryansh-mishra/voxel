@@ -1,3 +1,4 @@
+'use client';
 import {
   Card,
   CardContent,
@@ -11,12 +12,10 @@ import axios from 'axios';
 import Image from 'next/image';
 import Link from 'next/link';
 import useStore from '@/store/store';
-import { useRouter } from 'next/navigation';
+
 export default function Login() {
-  const router = useRouter();
   const isLoggedIn = useStore((state) => state.isLoggedIn);
   const setIsLoggedIn = useStore((state) => state.setIsLoggedIn);
-  const setIsLoggedInLoading = useStore((state) => state.setIsLoggedInLoading);
   const user = useStore((state) => state.user);
   const setUser = useStore((state) => state.setUser);
 
@@ -31,11 +30,8 @@ export default function Login() {
         },
         { withCredentials: true }
       );
-      // setIsLoggedInLoading(false);
-
       setIsLoggedIn(true);
-      setUser(user.data.data);
-      // router.push('/chats');
+      setUser(user.data.data.user);
     },
     onError: (errorResponse) => console.log(errorResponse),
   });

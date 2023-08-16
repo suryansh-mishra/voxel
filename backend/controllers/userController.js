@@ -1,19 +1,25 @@
 const User = require('./../models/userModel');
 
-exports.createUser = async (req, res, next) => {
+exports.edit = async (req, res, next) => {
+  console.log('AT EDIT ROUTE');
   try {
-    const user = await User.create(req.body);
-    res.status(201).json({
-      status: 'success',
-      data: user,
+    const { firstName, lastName, nickName } = req.body;
+    const newUserInfo = {};
+    if (firstName) newUserInfo.firstName = firstName;
+    if (lastName) newUserInfo.lastName = lastName;
+    const user = await User.findByIdAndUpdate({ _id: req.user }, newUserInfo, {
+      returnDocument: 'after',
     });
-  } catch (err) {
-    return next(err);
-  }
-};
-
-exports.getUser = async (req, res) => {
-  try {
-    const user = await User.find(req.userId);
+    res.status(200).json({
+      status: 'success',
+      data: {
+        user: {
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          profilePic: user.picture,
+        },
+      },
+    });
   } catch (err) {}
 };

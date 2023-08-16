@@ -4,6 +4,7 @@ import { Manrope } from 'next/font/google';
 import { ThemeProvider } from '@/components/theme.provider';
 import Nav from '@/components/Nav';
 import { Toaster } from '@/components/ui/toaster';
+import useStore from '@/store/store';
 
 const manrope = Manrope({ subsets: ['latin'] });
 

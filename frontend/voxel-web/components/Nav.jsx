@@ -12,7 +12,10 @@ function NavListItem({ children, href, className, onClick }) {
       <Link
         href={href}
         onClick={onClick}
-        className={`px-4 dark:text-zinc-300 text-zinc-700  cursor-pointer duration-100 hover:bg-accent-light-faded bg-opacity-30 hover:text-accent-light-bright hover:dark:bg-accent-dark-faded hover:dark:text-accent-dark-bright p-1 rounded-full ease-in border-accent-dark-bright active:font-black ${className} `}
+        className={`px-4 dark:text-zinc-300 text-zinc-700  cursor-pointer duration-100 
+        hover:bg-accent-light-faded  hover:text-accent-light-bright 
+        hover:dark:bg-accent-dark-faded hover:dark:text-accent-dark-bright p-1 rounded-full 
+        ease-in active:font-black ${className} `}
       >
         {children}
       </Link>
@@ -23,7 +26,7 @@ function NavListItem({ children, href, className, onClick }) {
 function NavListButton({ children, onClick }) {
   return (
     <li>
-      <button className="px-4 dark:text-zinc-300 text-zinc-700  cursor-pointer duration-75 hover:bg-zinc-900 hover:text-zinc-50 hover:dark:bg-zinc-50 hover:dark:text-zinc-900 p-2 rounded-lg ease-in">
+      <button className="px-4 dark:text-zinc-300 text-zinc-700 cursor-pointer duration-75 hover:bg-red-600 hover:text-red-100 py-1 hover:bg-opacity-80 rounded-full ease-in">
         {children}
       </button>
     </li>
@@ -68,18 +71,18 @@ export default function Nav() {
             <nav
               className={`absolute mt-2 right-0 border dark:border-zinc-700 border-zinc-200 rounded-md backdrop-blur-lg`}
             >
-              <ul className="relative px-2 py-3 flex flex-col text-sm gap-2">
+              <ul className="px-1 py-1 flex flex-col text-sm">
                 <NavListItem
                   href="/"
                   onClick={toggleHamburger}
-                  className={'rounded-sm'}
+                  className={'block rounded-sm px-8 py-2'}
                 >
                   Home
                 </NavListItem>
                 <NavListItem
                   href="/chats"
                   onClick={toggleHamburger}
-                  className={'border-none rounded-none'}
+                  className={'block rounded-sm px-8 py-2'}
                 >
                   Chats
                 </NavListItem>
