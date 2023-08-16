@@ -10,21 +10,32 @@ import { useGoogleLogin } from '@react-oauth/google';
 import axios from 'axios';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Separator } from './ui/separator';
-
+import useStore from '@/store/store';
+import { useRouter } from 'next/navigation';
 export default function Login() {
+  const router = useRouter();
+  const isLoggedIn = useStore((state) => state.isLoggedIn);
+  const setIsLoggedIn = useStore((state) => state.setIsLoggedIn);
+  const setIsLoggedInLoading = useStore((state) => state.setIsLoggedInLoading);
+  const user = useStore((state) => state.user);
+  const setUser = useStore((state) => state.setUser);
+
   const googleLogin = useGoogleLogin({
     flow: 'auth-code',
     onSuccess: async (res) => {
+      console.log(process.env.NEXT_PUBLIC_SERVER);
       const user = await axios.post(
-        'http://localhost:7764/api/v1/users/login',
+        `${process.env.NEXT_PUBLIC_SERVER}/users/login`,
         {
           data: res,
         },
-        { withCredentials: false }
+        { withCredentials: true }
       );
+      // setIsLoggedInLoading(false);
 
-      console.log(user);
+      setIsLoggedIn(true);
+      setUser(user.data.data);
+      // router.push('/chats');
     },
     onError: (errorResponse) => console.log(errorResponse),
   });
@@ -35,11 +46,11 @@ export default function Login() {
           <Image
             width="500"
             height="500"
-            src="/volex-logo.svg"
+            src="voxel-logo.svg"
             alt="logo"
             className="w-10 h-10"
           />
-          <h1 className="font-semibold text-lg">volex</h1>
+          <h1 className="font-semibold text-lg">voxel</h1>
         </Link>
       </div>
 
@@ -50,14 +61,14 @@ export default function Login() {
               <span className="dark:text-accent-dark-bright  font-bold">
                 Hi,&nbsp;
               </span>
-              Welcome to volex
+              Welcome to voxel
             </h2>
             <p className="text-4xl mt-10 font-semibold text-zinc-600 font-sans dark:text-zinc-400">
               Bringing you and your loved ones closer.
             </p>
           </header>
           <Image
-            src="/volex-logo.svg"
+            src="voxel-logo.svg"
             width="500"
             height="500"
             alt="logo"
@@ -96,6 +107,11 @@ export default function Login() {
         <span className="block mt-2 text-zinc-300 text-xs">
           &copy; copyrights no rights reserved
         </span>
+
+        <div>
+          {isLoggedIn && <p>Is logged in!</p>}
+          {<p>{JSON.stringify(user)} </p>}
+        </div>
       </footer>
     </>
   );

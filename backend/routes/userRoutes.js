@@ -17,6 +17,8 @@ router.route('/edit').post((req, res, next) => {});
 
 // TODO GET ROUTE
 
-router.route('/').post((req, res, next) => {});
+router.route('/').get((req, res, next) => {
+  console.log(req);
+});
 
 module.exports = router;

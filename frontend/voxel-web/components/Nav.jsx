@@ -38,16 +38,16 @@ export default function Nav() {
   };
 
   return (
-    <div className="container justify-between md:justify-between flex h-14 md:h-20 md:px-14 items-center  sticky top-0">
+    <div className="container justify-between md:justify-between flex h-14 md:h-20 md:px-14 items-center backdrop-blur-lg sticky top-0">
       <div className="flex items-center">
         <Image
-          src="/volex-logo.svg"
+          src="voxel-logo.svg"
           width="1000"
           height="1000"
           alt="logo"
           className="mr-2 w-10 h-10 rounded-full"
         ></Image>
-        <h1 className="text-xl  font-medium">volex</h1>
+        <h1 className="text-xl  font-medium">voxel</h1>
       </div>
 
       <ul className="md:flex hidden flex-row gap-2 text-sm items-baseline justify-self-end mr-20">
