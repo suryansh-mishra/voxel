@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import useStore from '@/store/store';
 import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 function SkeletonChats() {
   return (
@@ -31,8 +32,11 @@ function SkeletonChats() {
 export default function Chats() {
   const router = useRouter();
   const isLoggedIn = useStore((state) => state.isLoggedIn);
-  const setLoggedIn = useStore((state) => state.setLoggedIn);
-  if (!isLoggedIn) router.push('/');
+
+  useEffect(() => {
+    if (!isLoggedIn) router.push('/');
+  }, [isLoggedIn]);
+
   return (
     <>
       {isLoggedIn && (
