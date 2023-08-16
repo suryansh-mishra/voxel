@@ -32,6 +32,12 @@ function SkeletonChats() {
 export default function Chats() {
   const router = useRouter();
   const isLoggedIn = useStore((state) => state.isLoggedIn);
+  const socket = useStore((state) => state.socket);
+  const createVoxelCall = () => {
+    if (socket) {
+      socket.emit('create');
+    }
+  };
 
   useEffect(() => {
     if (!isLoggedIn) router.push('/');
@@ -65,7 +71,9 @@ export default function Chats() {
                 </CardHeader>
                 <CardContent>
                   <Input disabled className="my-2 mt-0 w-full"></Input>
-                  <Button className="my-2 w-full">Create</Button>
+                  <Button className="my-2 w-full" onClick={createVoxelCall}>
+                    Create
+                  </Button>
                   <Button className="my-2 w-full hidden bg-blue-900 hover:bg-blue-950 active:opacity-90 dark:bg-cyan-100 hover:dark:bg-cyan-200 duration-200">
                     Copy
                   </Button>

@@ -44,9 +44,7 @@ export default function Home() {
     });
     if (resp) setSubmitSpinner(false);
     setUser(resp.data.data.user);
-    console.log(user);
-    // TODO : Patch the user profile with first and last name as indicated
-    // await userResp setSubmitSpinner(false);
+    // TODO : IMPLEMENT NICKNAME AND PATCHING IT
   };
 
   const testHandler = async (e) => {

@@ -4,8 +4,15 @@ const app = require('./app');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const server = require('http').Server(app);
-const io = require('socket.io')(server);
-const morgan = require('morgan');
+const io = require('socket.io')(server, {
+  cors: {
+    origin: ['localhost:3000', 'http://localhost:3000'],
+    methods: ['GET', 'POST'],
+    credentials: true,
+  },
+});
+const decodeJWT = require('./utils/decodeJWT');
+
 app.set('sockets', io);
 
 dotenv.config({ path: `${__dirname}/config.env` });
@@ -23,12 +30,45 @@ mongoose
     if (process.env.NODE_ENV === 'dev') console.log(err);
   });
 
+/////////////////////////////////////////////////
+
+// const { Console } = require('console');
+/* // get fs module for creating write streams */
+// const fs = require('fs');
+
+/** // make a new logger */
+// const myLogger = new Console({
+//   stdout: fs.createWriteStream('normalStdout.txt'),
+//   stderr: fs.createWriteStream('errStdErr.txt'),
+// });
+////////////////////////
+
 io.use((socket, next) => {
-  // TODO COMPLETE THIS AFTER AUTH
+  const cookies = socket.handshake?.headers?.cookie;
+  let token;
+  cookies.split(';').forEach((element) => {
+    element = element.trim();
+    if (element.startsWith('jwt=')) {
+      token = element.substring(4);
+      return;
+    }
+  });
+  const decoded = decodeJWT(token);
+  if (decoded.id) {
+    socket.userId = decoded.id;
+    socket.userEmail = decoded.email;
+    next();
+  } else next(new Error('Authentication error'));
 });
 
 io.on('connection', (socket) => {
   // TODO COMPLETE THIS AFTER SETUP;
+  console.log('Connected');
+  socket.on('create', () => {
+    // const room = roomController.createRoom(socket.userId);
+    console.log(room);
+    socket.emit('room_created', room);
+  });
 });
 
 const port = process.env.PORT || 49152;

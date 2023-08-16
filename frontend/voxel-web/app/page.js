@@ -7,6 +7,8 @@ import Home from '@/components/Home';
 import SplashScreen from '@/components/SplashScreen';
 import axios from 'axios';
 import { useEffect } from 'react';
+import { io } from 'socket.io-client';
+
 axios.defaults.withCredentials = true;
 
 export default function HomePage() {
@@ -16,6 +18,7 @@ export default function HomePage() {
   const setIsLoggedIn = useStore((state) => state.setIsLoggedIn);
   const setUser = useStore((state) => state.setUser);
   const { toast } = useToast();
+  const setSocket = useStore((state) => state.setSocket);
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -27,6 +30,13 @@ export default function HomePage() {
           if (user.data.data.user) {
             setIsLoggedIn(true);
             setUser(user.data.data.user);
+            const socket = new io(
+              `${process.env.NEXT_PUBLIC_SERVER_URI_BASE}`,
+              {
+                withCredentials: true,
+              }
+            );
+            setSocket(socket);
           }
         })
         .catch((err) => {

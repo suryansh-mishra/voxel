@@ -1,15 +1,8 @@
 const User = require('./../models/userModel');
-const { OAuth2Client } = require('google-auth-library');
 const axios = require('axios');
-const chalk = require('chalk');
 const jwt = require('jsonwebtoken');
+const decodeJWT = require('../utils/decodeJWT');
 const AppError = require('../utils/appError');
-
-const googleOAuthClient = new OAuth2Client(
-  process.env.GOOGLE_CLIENT_ID,
-  process.env.GOOGLE_CLIENT_SECRET,
-  'postmessage'
-);
 
 const signJWT = (id, email) => {
   const payload = { email, id };
@@ -20,18 +13,21 @@ const signJWT = (id, email) => {
 
 const verifyJWT = (req) => {
   const { jwt: token } = req.cookies;
-  if (!token) return { decoded: null, currentJWT: null, error: 'No jwt token' };
-  const decoded = jwt.decode(token);
-  if (!decoded) {
-    console.log('Decode token error');
+
+  const decoded = decodeJWT(token);
+  if (decoded.error)
     return res.status(401).json({
       status: 'fail',
       data: {
-        message: 'Please Sign up/ Login to use this resource',
+        message:
+          decoded.error && decoded.message
+            ? 'Invalid authentication'
+            : 'Please sign in to use this resource',
       },
     });
-  }
-  return { decoded, currentJWT: token };
+
+  // FIXME : CHECK FOR TOKEN EXPIRY ALSO
+  return { decoded };
 };
 
 exports.register = async (req, res) => {
@@ -63,7 +59,7 @@ exports.login = async (req, res) => {
     if (user) {
       const token = signJWT(user._id, user.email);
 
-      // TODO : For a production ready application change the field for secure cookies appropriately
+      // TODO : CHECK SECURE COOKIE FOR PRODUCTION READY
 
       const cookieOptions = {
         expires: new Date(
@@ -139,6 +135,8 @@ exports.isLoggedIn = async (req, res) => {
     next(new AppError());
   }
 };
+
+// FIXME : INTRODUCE BETTER AUTH WORK FLOW
 
 exports.authenticate = async (req, res, next) => {
   console.log('AT AUTHENTICATION ROUTE');
