@@ -2,9 +2,7 @@ import './globals.css';
 import { Manrope } from 'next/font/google';
 <script src="https://accounts.google.com/gsi/client" async></script>;
 import { ThemeProvider } from '@/components/theme.provider';
-import Nav from '@/components/Nav';
 import { Toaster } from '@/components/ui/toaster';
-import useStore from '@/store/store';
 
 const manrope = Manrope({ subsets: ['latin'] });
 

@@ -28,6 +28,9 @@ module.exports = {
           },
         },
       },
+      height: {
+        dvh: '100dvh',
+      },
       keyframes: {
         'accordion-down': {
           from: { height: 0 },

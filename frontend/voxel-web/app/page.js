@@ -4,6 +4,7 @@ import useStore from '@/store/store';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { useToast } from '@/components/ui/use-toast';
 import Home from '@/components/Home';
+import SplashScreen from '@/components/SplashScreen';
 import axios from 'axios';
 import { useEffect } from 'react';
 axios.defaults.withCredentials = true;
@@ -40,8 +41,8 @@ export default function HomePage() {
   }, []);
   return (
     <GoogleOAuthProvider clientId="943016074848-p637kqbq05gqfam1svrjtt58evjk2et1.apps.googleusercontent.com">
+      {isLoggedInLoading && !isLoggedIn && <SplashScreen />}
       <main className="dark:bg-zinc-950 bg-zinc-50">
-        {/* {isLoggedInLoading && !isLoggedIn && <p>Loading...</p>} */}
         {!isLoggedInLoading && !isLoggedIn && <Login />}
         {!isLoggedInLoading && isLoggedIn && <Home />}
       </main>
