@@ -68,10 +68,25 @@ io.use(async (socket, next) => {
 io.on('connection', (socket) => {
   // TODO COMPLETE THIS AFTER SETUP;
   console.log('Connected');
+
   socket.on('create', async () => {
     const room = await roomController.createRoom(socket);
     console.log(room);
-    socket.emit('room_created', room);
+    // room.roomId is the roomId that I use
+    socket.leave(socket.id);
+    socket.join(room.roomId);
+    console.log('Created and joined the room ', room.roomId);
+    io.to(room.roomId).emit('room_created', room);
+  });
+
+  socket.on('join', async (roomId) => {
+    // roomId : { roomId : 'String' }
+    console.log('Asking to join', roomId);
+    const room = await roomController.joinRoom(socket, roomId);
+    console.log('Joined the room ', room.roomId);
+    socket.leave(socket.id);
+    socket.join(room.roomId);
+    io.to(room.roomId).emit('joined', room);
   });
 });
 
@@ -82,4 +97,8 @@ server.listen(port, () => {
       `\n\n\n\n⫸  Server is listening on ${port}   `
     )
   );
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  process.exit(1);
 });

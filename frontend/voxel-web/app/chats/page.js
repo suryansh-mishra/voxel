@@ -1,5 +1,6 @@
 'use client';
 
+import ChatScreen from '@/components/ChatScreen';
 import Nav from '@/components/Nav';
 import { Button } from '@/components/ui/button';
 import {
@@ -9,13 +10,13 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/components/ui/use-toast';
 import useStore from '@/store/store';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
-import { useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 
 function SkeletonChats() {
   return (
@@ -34,20 +35,24 @@ function SkeletonChats() {
 export default function Chats() {
   const router = useRouter();
   const { toast } = useToast();
+  const inCall = useStore((state) => state.inCall);
 
   const [createdRoomString, setCreatedRoomString] = useState('');
+  const [joinRoomString, setJoinRoomString] = useState('');
 
   const isLoggedIn = useStore((state) => state.isLoggedIn);
   const socket = useStore((state) => state.socket);
+  const joinInputRef = useRef(null);
 
   const copyToClipboard = async (e) => {
     if (e) e.preventDefault();
     try {
       const val = await navigator.clipboard.writeText(createdRoomString);
-      toast({
-        title: 'Copied to clipboard',
-        description: 'Ask them to join your voxel call',
-      });
+      if (val)
+        toast({
+          title: 'Copied to clipboard',
+          description: 'Ask them to join your voxel call',
+        });
     } catch (err) {
       toast({
         title: 'No clipboard support',
@@ -76,7 +81,22 @@ export default function Chats() {
     }
   };
 
-  const joinVoxelCall = () => {};
+  const joinVoxelCall = () => {
+    if (socket && joinRoomString) {
+      socket.emit('join', { roomId: joinRoomString });
+      socket.on('joined', (data) => {
+        console.log(data);
+      });
+      toast({
+        title: 'Room joined',
+        description: 'Move to the chat',
+      });
+    }
+  };
+
+  const joinRoomInputHandler = (e) => {
+    if (e) setJoinRoomString(e.target.value);
+  };
 
   useEffect(() => {
     if (!isLoggedIn) router.push('/');
@@ -97,8 +117,14 @@ export default function Chats() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Input className="my-2 mt-0"></Input>
-                  <Button className="mt-2 w-full">Join</Button>
+                  <Input
+                    className="my-2 mt-0"
+                    ref={joinInputRef}
+                    onChange={joinRoomInputHandler}
+                  ></Input>
+                  <Button className="mt-2 w-full" onClick={joinVoxelCall}>
+                    Join
+                  </Button>
                 </CardContent>
               </Card>
               <Card>
@@ -143,6 +169,7 @@ export default function Chats() {
         </div> */}
             </Card>
           </main>
+          {inCall && <ChatScreen />}
         </>
       )}
     </>

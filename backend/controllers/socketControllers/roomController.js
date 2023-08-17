@@ -32,3 +32,43 @@ exports.createRoom = async (socket) => {
   }
   return room;
 };
+
+exports.joinRoom = async (socket, roomId) => {
+  let room;
+  console.log('At controller trying to join : ', roomId.roomId);
+  try {
+    room = await Room.findOne({ roomId: roomId.roomId });
+  } catch (err) {
+    console.log('Error', err);
+    return { error: true, message: err.message };
+  }
+
+  if (!room)
+    return { error: true, message: "Sorry but this chat doesn'nt exist" };
+
+  if (socket.currentRoom) {
+    const previousRoom = await Room.findById(socket.currentRoom);
+    // END THAT MEETING IF REQUIRED ?
+    // TODO : Handle logic to end the meeting when all users leave the room
+  }
+
+  room.participants.push(socket.userId);
+  room.activeParticipantsCount += 1;
+
+  try {
+    room = await room.save();
+  } catch (err) {
+    console.log('Error', err);
+    return { error: true, message: err.message };
+  }
+  try {
+    const user = await User.findByIdAndUpdate(socket.userId, {
+      currentRoom: roomId.roomId,
+    });
+  } catch (err) {
+    console.log('Error', err);
+    return { error: true, message: err.message };
+  }
+
+  return room;
+};
