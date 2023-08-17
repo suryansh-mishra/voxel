@@ -42,8 +42,10 @@ mongoose
 //   stderr: fs.createWriteStream('errStdErr.txt'),
 // });
 ////////////////////////
-
-io.use((socket, next) => {
+const roomController = require('./controllers/socketControllers/roomController');
+const User = require('./models/userModel');
+io.use(async (socket, next) => {
+  console.log('Socket middleware used');
   const cookies = socket.handshake?.headers?.cookie;
   let token;
   cookies.split(';').forEach((element) => {
@@ -54,9 +56,11 @@ io.use((socket, next) => {
     }
   });
   const decoded = decodeJWT(token);
-  if (decoded.id) {
+  const user = await User.findById(decoded.id);
+  if (decoded.id && user) {
     socket.userId = decoded.id;
-    socket.userEmail = decoded.email;
+    socket.userEmail = user.email;
+    socket.firstName = user.firstName;
     next();
   } else next(new Error('Authentication error'));
 });
@@ -64,8 +68,8 @@ io.use((socket, next) => {
 io.on('connection', (socket) => {
   // TODO COMPLETE THIS AFTER SETUP;
   console.log('Connected');
-  socket.on('create', () => {
-    // const room = roomController.createRoom(socket.userId);
+  socket.on('create', async () => {
+    const room = await roomController.createRoom(socket);
     console.log(room);
     socket.emit('room_created', room);
   });

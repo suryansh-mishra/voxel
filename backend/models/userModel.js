@@ -14,6 +14,8 @@ const userModel = new Schema({
     required: [true, 'Last name should not be empty'],
     trim: true,
   },
+  // nickName : {},
+  // XP : {},
   email: {
     type: String,
     required: [true, 'Email should not be empty'],
@@ -42,6 +44,7 @@ const userModel = new Schema({
   // userName : , AT LATER STAGE
 });
 
+exports.userModel = userModel;
 const User = new mongoose.model('User', userModel);
 module.exports = User;
 
