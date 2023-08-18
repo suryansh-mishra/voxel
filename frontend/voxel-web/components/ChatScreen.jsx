@@ -1,6 +1,28 @@
+import { useEffect } from 'react';
 import { Button } from './ui/button';
+import { useToast } from './ui/use-toast';
 
 export default function ChatScreen() {
+  const { toast } = useToast();
+  useEffect(
+    () =>
+      (async () => {
+        try {
+          const localStream = await navigator.mediaDevices.getUserMedia(
+            mediaConstraints
+          );
+          videoRef.srcObject = localStream;
+        } catch (err) {
+          toast({
+            variant: 'destructive',
+            description: 'Something went wrong',
+            title: 'AT CHAT SCREEN LOCAL STREAM',
+          });
+        }
+      })(),
+    []
+  );
+
   return (
     <div className="flex flex-col items-center justify-center h-[100dvh] w-full absolute top-0 left-0 px-4 backdrop-blur-xl">
       <header className="flex w-full justify-between">

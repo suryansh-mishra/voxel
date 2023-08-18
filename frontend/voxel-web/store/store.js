@@ -9,7 +9,7 @@ const useStore = create((set) => ({
   videoCallVisible: false,
   inCall: false,
   setInCall: (val) => set(() => ({ inCall: val })),
-  toggleVideoCallVisible: (val) => set(() => ({ videoCallVisible: val })),
+  setVideoCallVisible: (val) => set(() => ({ videoCallVisible: val })),
   setSocket: (value) => set(() => ({ socket: value })),
   setUser: (value) => set(() => ({ user: value })),
   setIsLoggedInLoading: (value) => set(() => ({ isLoggedInLoading: value })),

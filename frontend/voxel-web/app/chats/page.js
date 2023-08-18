@@ -43,6 +43,9 @@ export default function Chats() {
   const isLoggedIn = useStore((state) => state.isLoggedIn);
   const socket = useStore((state) => state.socket);
   const joinInputRef = useRef(null);
+  const setVideoCallVisible = useStore((state) => state.setVideoCallVisible);
+  const videoCallVisible = useStore((state) => state.videoCallVisible);
+  const mediaConstraints = { video: true, audio: true };
 
   const copyToClipboard = async (e) => {
     if (e) e.preventDefault();
@@ -66,7 +69,7 @@ export default function Chats() {
     router.push('/chat');
   };
 
-  const createVoxelCall = () => {
+  const createVoxelCall = async () => {
     if (socket) {
       socket.emit('create');
       socket.on('room_created', (data) => {
@@ -78,6 +81,7 @@ export default function Chats() {
             'Ask them to join your voxel call by copying the room id',
         });
       });
+      setVideoCallVisible(true);
     }
   };
 
@@ -169,7 +173,7 @@ export default function Chats() {
         </div> */}
             </Card>
           </main>
-          {inCall && <ChatScreen />}
+          {videoCallVisible && <ChatScreen />}
         </>
       )}
     </>
