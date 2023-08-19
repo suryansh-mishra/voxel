@@ -14,8 +14,15 @@ const userModel = new Schema({
     required: [true, 'Last name should not be empty'],
     trim: true,
   },
-  // nickName : {},
-  // XP : {},
+  // nickName : {
+  //   type: String,
+  //   required: [true, 'Nickname should not be empty'],
+  //   trim  : true,
+  // },
+  XP: {
+    type: Number,
+    default: 100,
+  },
   email: {
     type: String,
     required: [true, 'Email should not be empty'],
@@ -41,7 +48,6 @@ const userModel = new Schema({
     type: Date,
     default: Date.now(),
   },
-  // userName : , AT LATER STAGE
 });
 
 exports.userModel = userModel;

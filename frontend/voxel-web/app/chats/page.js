@@ -85,10 +85,6 @@ export default function Chats() {
       {
         urls: [
           'stun:stun1.l.google.com:19302',
-          'stun:stun2.l.google.com:19302',
-          'stun:stun.l.google.com:19302',
-          'stun:stun3.l.google.com:19302',
-          'stun:stun4.l.google.com:19302',
           'stun:stun.services.mozilla.com',
         ],
       },
@@ -114,11 +110,15 @@ export default function Chats() {
   const endCall = () => {
     // TODO : Need to remove the backend entry of active room from it
     // Gotta take care I don't allow rooms which are inactive to be joined on the backend
-
+    // Why doesn't this stop ?
     const tracks = localStream?.getTracks();
     tracks?.forEach((element) => {
       element?.stop();
     });
+    setVideoCallVisible(false);
+    // localPeerConnObj.close();
+    // setLocalPeerConnObj(null);
+    setCurrentRoom(null);
     setCreatedRoomString('');
     setLocalStream(null);
   };
@@ -131,32 +131,35 @@ export default function Chats() {
     if (socket) {
       socket.emit('create');
       socket.on('room_created', async (data) => {
-        console.log(data);
+        console.log('Room created', data);
         setCurrentRoom(data.roomId);
         setCreatedRoomString(data.roomId);
+        // GET LOCAL MEDIA STREAM
         toast({
           title: 'Voxel call created',
           description:
             'Ask them to join your voxel call by copying the room id',
         });
-
         let ls;
         try {
           ls = await navigator.mediaDevices.getUserMedia(mediaConstraints);
         } catch (err) {
           console.log(err);
         }
-        if (ls) setLocalStream(ls);
-        else
+        if (ls) {
+          setLocalStream(ls);
+          setVideoCallVisible(true);
+          createRTCPeerConnection();
+        } else
           toast({
             title: 'No video/audio media device found',
             variant: 'destructive',
           });
-
-        setVideoCallVisible(true);
-        createRTCPeerConnection();
       });
-    }
+    } else
+      toast({
+        title: 'Error connecting to servers',
+      });
   };
 
   const joinVoxelCall = () => {
@@ -230,6 +233,7 @@ export default function Chats() {
                 </CardHeader>
                 <CardContent>
                   <Input
+                    readOnly
                     className="my-2 mt-0 w-full"
                     value={createdRoomString}
                   ></Input>
@@ -269,7 +273,6 @@ export default function Chats() {
         </div> */}
             </Card>
           </main>
-          {videoCallVisible && <ChatScreen />}
         </>
       )}
     </>

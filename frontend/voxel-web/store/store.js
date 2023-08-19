@@ -12,7 +12,7 @@ const useStore = create((set) => ({
   inCall: false, //  Not really needed, pending removal in near future
   localStream: null, // Device A/V stream
   remoteStream: null, // Peer A/V stream
-  createdRoomString: null, // Room string generated so that it is preserved b/w renders from one page to another
+  createdRoomString: '', // Room string generated so that it is preserved b/w renders from one page to another
 
   localPeerConnObj: null,
   remotePeerConnObj: null,

@@ -3,6 +3,9 @@ import { Manrope } from 'next/font/google';
 <script src="https://accounts.google.com/gsi/client" async></script>;
 import { ThemeProvider } from '@/components/theme.provider';
 import { Toaster } from '@/components/ui/toaster';
+import useStore from '@/store/store';
+import FloatingChatControl from '@/components/FloatingChatControl';
+import ChatScreen from '@/components/ChatScreen';
 
 const manrope = Manrope({ subsets: ['latin'] });
 
@@ -20,6 +23,8 @@ export default function RootLayout({ children }) {
           {children}
           <Toaster />
           {/* TODO : ADD A SMALL BOX HERE TO GET TO THE CURRENT CALL IMMEDIATELY */}
+          <FloatingChatControl />
+          <ChatScreen />
         </ThemeProvider>
       </body>
     </html>
