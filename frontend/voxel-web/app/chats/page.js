@@ -34,9 +34,8 @@ function SkeletonChats() {
 
 export default function Chats() {
   const router = useRouter();
-  const { toast } = useToast();
-  const inCall = useStore((state) => state.inCall);
 
+  const { toast } = useToast();
   const [createdRoomString, setCreatedRoomString] = useState('');
   const [joinRoomString, setJoinRoomString] = useState('');
 
@@ -45,7 +44,8 @@ export default function Chats() {
   const joinInputRef = useRef(null);
   const setVideoCallVisible = useStore((state) => state.setVideoCallVisible);
   const videoCallVisible = useStore((state) => state.videoCallVisible);
-  const mediaConstraints = { video: true, audio: true };
+
+  // TODO : IMPLEMENT ERROR FLOW B/W BACKEND AND FRONTEND FOR ROOMS ETC
 
   const copyToClipboard = async (e) => {
     if (e) e.preventDefault();
@@ -66,7 +66,7 @@ export default function Chats() {
   };
 
   const goToChat = (e) => {
-    router.push('/chat');
+    setVideoCallVisible(true);
   };
 
   const createVoxelCall = async () => {
@@ -90,10 +90,19 @@ export default function Chats() {
       socket.emit('join', { roomId: joinRoomString });
       socket.on('joined', (data) => {
         console.log(data);
+        toast({
+          title: 'Room joined',
+          description: 'Move to the chat',
+        });
       });
-      toast({
-        title: 'Room joined',
-        description: 'Move to the chat',
+      socket.on('error', (data) => {
+        if (data) {
+          toast({
+            title: 'Invalid Room Id',
+            description: 'Please try with a valid room',
+            variant: 'destructive',
+          });
+        }
       });
     }
   };

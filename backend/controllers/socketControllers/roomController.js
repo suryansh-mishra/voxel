@@ -1,50 +1,67 @@
 // TODO: ADD THE ROOM CREATION AND JOINING FUNCTIONALITY HERE
-// - CREATE UUID BASED ROOMS
-// - TAKE THE USER AND BIND HIM WITH THE ROOM
-// - TAKE OTHER NECESSARY STEPS
 
-const { v4: uuid } = require('uuid');
 const Room = require('../../models/roomModel');
 const ShortUniqueId = require('short-unique-id');
 const User = require('../../models/userModel');
+const AppError = require('../../utils/appError');
 const uid = new ShortUniqueId({ length: 10 });
 
 exports.createRoom = async (socket) => {
-  const roomId = socket.firstName.trim() + "'s-voxel" + uid();
-  console.log('UUID : ', roomId);
-  const room = await Room.create({
-    roomId,
-    participants: [socket.userId],
-    roomAdmin: socket.userId,
-  });
-  if (socket.currentRoom) {
-    // Remove the user's current room and end room
-    // if the room is active because of him
-    const previousRoom = await Room.findById(socket.currentRoom);
-    if (previousRoom.roomAdmin === socket.userId) {
-      // END THE MEETING?
-      // todo : Handle the logic to end the meeting when all users leave the room
-    }
-    const user = await User.findByIdAndUpdate(socket.userId, {
-      currentRoom: roomId,
+  try {
+    const roomId = socket.firstName.trim() + "'s-voxel" + uid();
+    console.log('UUID : ', roomId);
+    const room = await Room.create({
+      roomId,
+      participants: [socket.userId],
+      roomAdmin: socket.userId,
     });
-    if (user) socket.currentRoom = user.currentRoom;
+    if (socket.currentRoom) {
+      // Remove the user's current room and end room
+      // if the room is active because of him
+      const previousRoom = await Room.findById(socket.currentRoom);
+      if (previousRoom.roomAdmin === socket.userId) {
+        // END THE MEETING?
+        // todo : Handle the logic to end the meeting when all users leave the room
+      }
+
+      const user = await User.findByIdAndUpdate(socket.userId, {
+        currentRoom: roomId,
+      });
+      if (user) socket.currentRoom = user.currentRoom;
+    }
+
+    return room;
+  } catch (err) {
+    new AppError(err, err.name || 'ROOM_CREAT_ERR');
   }
-  return room;
 };
 
 exports.joinRoom = async (socket, roomId) => {
   let room;
+
   console.log('At controller trying to join : ', roomId.roomId);
+
   try {
     room = await Room.findOne({ roomId: roomId.roomId });
   } catch (err) {
     console.log('Error', err);
-    return { error: true, message: err.message };
+    return {
+      status: 'error',
+      message: {
+        title: 'Something went wrong',
+        description: err.message,
+      },
+    };
   }
 
   if (!room)
-    return { error: true, message: "Sorry but this chat doesn'nt exist" };
+    return {
+      status: 'fail',
+      message: {
+        title: 'Chat not found',
+        description: "Sorry but this chat doesn'nt exist",
+      },
+    };
 
   if (socket.currentRoom) {
     const previousRoom = await Room.findById(socket.currentRoom);
@@ -59,7 +76,10 @@ exports.joinRoom = async (socket, roomId) => {
     room = await room.save();
   } catch (err) {
     console.log('Error', err);
-    return { error: true, message: err.message };
+    return {
+      status: 'error',
+      message: { title: 'Something went wrong', description: err.message },
+    };
   }
   try {
     const user = await User.findByIdAndUpdate(socket.userId, {
@@ -67,8 +87,18 @@ exports.joinRoom = async (socket, roomId) => {
     });
   } catch (err) {
     console.log('Error', err);
-    return { error: true, message: err.message };
+    return {
+      status: 'error',
+      message: { title: 'Something went wrong', description: err.message },
+    };
   }
 
-  return room;
+  return {
+    status: 'success',
+    message: {
+      title: 'Room Joined',
+      description: 'Successfully joined the room',
+      data: room,
+    },
+  };
 };

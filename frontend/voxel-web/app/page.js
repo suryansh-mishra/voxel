@@ -30,13 +30,14 @@ export default function HomePage() {
           if (user.data.data.user) {
             setIsLoggedIn(true);
             setUser(user.data.data.user);
+
             const socket = new io(
               `${process.env.NEXT_PUBLIC_SERVER_URI_BASE}`,
               {
                 withCredentials: true,
               }
             );
-            setSocket(socket);
+            if (socket) setSocket(socket);
           }
         })
         .catch((err) => {

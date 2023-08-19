@@ -67,7 +67,7 @@ io.use(async (socket, next) => {
 
 io.on('connection', (socket) => {
   // TODO COMPLETE THIS AFTER SETUP;
-  console.log('Connected');
+  console.log('Socket Connected', socket.id);
 
   socket.on('create', async () => {
     const room = await roomController.createRoom(socket);
@@ -75,18 +75,40 @@ io.on('connection', (socket) => {
     // room.roomId is the roomId that I use
     socket.leave(socket.id);
     socket.join(room.roomId);
-    console.log('Created and joined the room ', room.roomId);
+    console.log(chalk.bgYellow('Created and joined the room ', room.roomId));
     io.to(room.roomId).emit('room_created', room);
   });
 
+  // TEMPLATING
+  // socket.on('offer', async () {});
+  // socket.on('answer', async () {});
+
   socket.on('join', async (roomId) => {
     // roomId : { roomId : 'String' }
+
     console.log('Asking to join', roomId);
-    const room = await roomController.joinRoom(socket, roomId);
-    console.log('Joined the room ', room.roomId);
+    const resp = await roomController.joinRoom(socket, roomId);
+    if (resp.status in ['fail', 'error']) {
+      socket.emit('error', resp);
+      console.log('Error in joining the room ', room.message);
+      return;
+    }
+    console.log('Joined the room ', resp.message.data.roomId);
     socket.leave(socket.id);
-    socket.join(room.roomId);
-    io.to(room.roomId).emit('joined', room);
+    socket.join(resp.message.data.roomId);
+    io.to(resp.message.data.roomId).emit('joined', resp);
+  });
+
+  socket.on('disconnect', async () => {
+    // TODO : HANDLE THE DISCONNECTION
+    console.log(
+      chalk.bgRed(
+        'Disconnected :',
+        socket.id,
+        'with first name',
+        socket.firstName
+      )
+    );
   });
 });
 
@@ -100,5 +122,6 @@ server.listen(port, () => {
 });
 
 process.on('unhandledRejection', (reason, promise) => {
+  console.log('Exiting because of unhandled exception');
   process.exit(1);
 });

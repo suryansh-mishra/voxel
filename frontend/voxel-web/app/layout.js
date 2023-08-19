@@ -19,6 +19,7 @@ export default function RootLayout({ children }) {
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           {children}
           <Toaster />
+          {/* TODO : ADD A SMALL BOX HERE TO GET TO THE CURRENT CALL IMMEDIATELY */}
         </ThemeProvider>
       </body>
     </html>

@@ -8,6 +8,16 @@ const cookieParser = require('cookie-parser');
 // The CORS setup allows both for development and prodcution builds
 // WEB_CLIENT refers to frontend deployment
 
+// app.use(compression()) // install npm compression
+// app.use(helmet())
+// const RateLimit = require("express-rate-limit");
+// const limiter = RateLimit({
+//   windowMs: 1 * 60 * 1000, // 1 minute
+//   max: 20,
+// });
+// Apply rate limiter to all requests
+// app.use(limiter);
+
 app.use(
   cors({
     origin: ['http://localhost:3000', process.env.WEB_CLIENT],

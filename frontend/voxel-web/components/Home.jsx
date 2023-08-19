@@ -47,16 +47,6 @@ export default function Home() {
     // TODO : IMPLEMENT NICKNAME AND PATCHING IT
   };
 
-  const testHandler = async (e) => {
-    e.preventDefault();
-    try {
-      const resp = await axios(`${process.env.NEXT_PUBLIC_SERVER}/users/test`, {
-        withCredentials: true,
-      });
-      console.log(resp.data);
-    } catch (e) {}
-  };
-
   return (
     <>
       <Nav />
@@ -151,7 +141,6 @@ export default function Home() {
                 )}
                 Save Changes
               </Button>
-              {/* <Button onClick={testHandler}>Test</Button> */}
             </form>
           </div>
         </section>

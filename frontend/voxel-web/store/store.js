@@ -8,6 +8,11 @@ const useStore = create((set) => ({
   currentRoom: '',
   videoCallVisible: false,
   inCall: false,
+  localStream: null,
+  remoteStream: null,
+
+  setRemoteStream: (val) => set(() => ({ remoteStream: val })),
+  setLocalStream: (val) => set(() => ({ localStream: val })),
   setInCall: (val) => set(() => ({ inCall: val })),
   setVideoCallVisible: (val) => set(() => ({ videoCallVisible: val })),
   setSocket: (value) => set(() => ({ socket: value })),
