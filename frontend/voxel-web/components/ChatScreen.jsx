@@ -10,27 +10,7 @@ export default function ChatScreen() {
   const { toast } = useToast();
   const videoRef = useRef(null);
   const localStream = useStore((state) => state.localStream);
-  const setLocalStream = useStore((state) => state.setLocalStream);
   const setVideoCallVisible = useStore((state) => state.setVideoCallVisible);
-
-  const mediaConstraints = { video: true, audio: true };
-  useEffect(() => {
-    const fn = async () => {
-      try {
-        const ls = await navigator.mediaDevices.getUserMedia(mediaConstraints);
-        const pc = new RTCPeerConnection();
-        if (ls) setLocalStream(ls);
-      } catch (err) {
-        console.log(err);
-        toast({
-          variant: 'destructive',
-          description: 'Something went wrong',
-          title: 'AT CHAT SCREEN LOCAL STREAM',
-        });
-      }
-    };
-    fn();
-  }, [videoRef]);
 
   useEffect(() => {
     if (videoRef && localStream) {

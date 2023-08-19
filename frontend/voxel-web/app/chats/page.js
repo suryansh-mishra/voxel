@@ -16,7 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/components/ui/use-toast';
 import useStore from '@/store/store';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 
 function SkeletonChats() {
   return (
@@ -36,22 +36,32 @@ export default function Chats() {
   const router = useRouter();
 
   const { toast } = useToast();
-  const [createdRoomString, setCreatedRoomString] = useState('');
-  const [joinRoomString, setJoinRoomString] = useState('');
 
+  const [joinRoomString, setJoinRoomString] = useState('');
+  const joinInputRef = useRef(null);
+
+  const currentRoom = useStore((state) => state.currentRoom);
+  const localPeerConnObj = useStore((state) => state.localPeerConnObj);
+  const remotePeerConnObj = useStore((state) => state.remotePeerConnObj);
+  const setLocalPeerConnObj = useStore((state) => state.setLocalPeerConnObj);
+  const setRemotePeerConnObj = useStore((state) => state.setRemotePeerConnObj);
   const isLoggedIn = useStore((state) => state.isLoggedIn);
   const socket = useStore((state) => state.socket);
-  const joinInputRef = useRef(null);
+  const localStream = useStore((state) => state.localStream);
+  const createdRoomString = useStore((state) => state.createdRoomString);
+  const setCreatedRoomString = useStore((state) => state.setCreatedRoomString);
   const setVideoCallVisible = useStore((state) => state.setVideoCallVisible);
   const videoCallVisible = useStore((state) => state.videoCallVisible);
+  const setLocalStream = useStore((state) => state.setLocalStream);
+  const setCurrentRoom = useStore((state) => state.setCurrentRoom);
 
   // TODO : IMPLEMENT ERROR FLOW B/W BACKEND AND FRONTEND FOR ROOMS ETC
 
   const copyToClipboard = async (e) => {
     if (e) e.preventDefault();
     try {
-      const val = await navigator.clipboard.writeText(createdRoomString);
-      if (val)
+      await navigator.clipboard.writeText(createdRoomString);
+      if (e)
         toast({
           title: 'Copied to clipboard',
           description: 'Ask them to join your voxel call',
@@ -64,6 +74,54 @@ export default function Chats() {
       });
     }
   };
+  const mediaConstraints = { video: true, audio: true };
+
+  const createOffer = () => {};
+
+  const createAnswer = () => {};
+
+  const servers = {
+    iceServers: [
+      {
+        urls: [
+          'stun:stun1.l.google.com:19302',
+          'stun:stun2.l.google.com:19302',
+          'stun:stun.l.google.com:19302',
+          'stun:stun3.l.google.com:19302',
+          'stun:stun4.l.google.com:19302',
+          'stun:stun.services.mozilla.com',
+        ],
+      },
+    ],
+    iceCandidatePoolSize: 10,
+  };
+
+  const handleConnection = (e) => {
+    alert('At handle conn');
+  };
+  const handleConnectionChange = (e) => {
+    alert('At handle conn change');
+  };
+
+  const createRTCPeerConnection = () => {
+    const lpc = new RTCPeerConnection(servers);
+    lpc.addEventListener('icecandidate', handleConnection);
+    lpc.addEventListener('iceconnectionstatechange', handleConnectionChange);
+    setLocalPeerConnObj(lpc);
+    // lpc.addStream(localStream);
+  };
+
+  const endCall = () => {
+    // TODO : Need to remove the backend entry of active room from it
+    // Gotta take care I don't allow rooms which are inactive to be joined on the backend
+
+    const tracks = localStream?.getTracks();
+    tracks?.forEach((element) => {
+      element?.stop();
+    });
+    setCreatedRoomString('');
+    setLocalStream(null);
+  };
 
   const goToChat = (e) => {
     setVideoCallVisible(true);
@@ -72,16 +130,32 @@ export default function Chats() {
   const createVoxelCall = async () => {
     if (socket) {
       socket.emit('create');
-      socket.on('room_created', (data) => {
+      socket.on('room_created', async (data) => {
         console.log(data);
+        setCurrentRoom(data.roomId);
         setCreatedRoomString(data.roomId);
         toast({
-          title: 'Voxel chat created',
+          title: 'Voxel call created',
           description:
             'Ask them to join your voxel call by copying the room id',
         });
+
+        let ls;
+        try {
+          ls = await navigator.mediaDevices.getUserMedia(mediaConstraints);
+        } catch (err) {
+          console.log(err);
+        }
+        if (ls) setLocalStream(ls);
+        else
+          toast({
+            title: 'No video/audio media device found',
+            variant: 'destructive',
+          });
+
+        setVideoCallVisible(true);
+        createRTCPeerConnection();
       });
-      setVideoCallVisible(true);
     }
   };
 
@@ -89,7 +163,8 @@ export default function Chats() {
     if (socket && joinRoomString) {
       socket.emit('join', { roomId: joinRoomString });
       socket.on('joined', (data) => {
-        console.log(data);
+        alert('Joined', data);
+        setCurrentRoom(data.roomId);
         toast({
           title: 'Room joined',
           description: 'Move to the chat',
@@ -103,6 +178,12 @@ export default function Chats() {
             variant: 'destructive',
           });
         }
+      });
+    } else {
+      toast({
+        title: 'Enter Room Id',
+        description: 'Please enter Room Id to join the voxel call',
+        variant: 'destructive',
       });
     }
   };
@@ -161,6 +242,12 @@ export default function Chats() {
                       onClick={copyToClipboard}
                     >
                       Copy
+                    </Button>
+                    <Button
+                      className={`w-full ${createdRoomString ? '' : 'hidden'}`}
+                      onClick={endCall}
+                    >
+                      End Call
                     </Button>
                     <Button
                       className={`w-full hover:bg-accent-light-bright active:opacity-90 dark:bg-cyan-100 hover:dark:bg-cyan-200 duration-200 ${
