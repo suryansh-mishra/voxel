@@ -10,14 +10,15 @@ export default function ChatScreen() {
   const { toast } = useToast();
   const videoRef = useRef(null);
   const localStream = useStore((state) => state.localStream);
+  const localSendingStream = useStore((state) => state.localSendingStream);
   const setVideoCallVisible = useStore((state) => state.setVideoCallVisible);
   const videoCallVisible = useStore((state) => state.videoCallVisible);
 
   useEffect(() => {
-    if (videoRef.current && localStream) {
-      videoRef.current.srcObject = localStream;
+    if (videoRef.current && localSendingStream) {
+      videoRef.current.srcObject = localSendingStream;
     }
-  }, [localStream, videoRef, videoCallVisible]);
+  }, [localSendingStream, videoRef, videoCallVisible]);
 
   return (
     <>

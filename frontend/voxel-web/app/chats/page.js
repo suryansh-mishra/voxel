@@ -17,6 +17,7 @@ import { useToast } from '@/components/ui/use-toast';
 import useStore from '@/store/store';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useRef, useMemo } from 'react';
+import { create } from 'zustand';
 
 function SkeletonChats() {
   return (
@@ -52,6 +53,9 @@ export default function Chats() {
   const setCreatedRoomString = useStore((state) => state.setCreatedRoomString);
   const setVideoCallVisible = useStore((state) => state.setVideoCallVisible);
   const videoCallVisible = useStore((state) => state.videoCallVisible);
+  const setLocalSendingStream = useStore(
+    (state) => state.setLocalSendingStream
+  );
   const setLocalStream = useStore((state) => state.setLocalStream);
   const setCurrentRoom = useStore((state) => state.setCurrentRoom);
 
@@ -111,16 +115,18 @@ export default function Chats() {
     // TODO : Need to remove the backend entry of active room from it
     // Gotta take care I don't allow rooms which are inactive to be joined on the backend
     // Why doesn't this stop ?
-    const tracks = localStream?.getTracks();
-    tracks?.forEach((element) => {
-      element?.stop();
+
+    const tracks = localStream.getTracks();
+    tracks?.forEach(async (track) => {
+      track.stop();
     });
     setVideoCallVisible(false);
+    setLocalSendingStream(null);
     // localPeerConnObj.close();
     // setLocalPeerConnObj(null);
     setCurrentRoom(null);
     setCreatedRoomString('');
-    setLocalStream(null);
+    setLocalSendingStream(null);
   };
 
   const goToChat = (e) => {
@@ -140,21 +146,31 @@ export default function Chats() {
           description:
             'Ask them to join your voxel call by copying the room id',
         });
-        let ls;
-        try {
-          ls = await navigator.mediaDevices.getUserMedia(mediaConstraints);
-        } catch (err) {
-          console.log(err);
-        }
-        if (ls) {
-          setLocalStream(ls);
+
+        if (!localStream) {
+          let ls;
+          try {
+            ls = await navigator.mediaDevices.getUserMedia(mediaConstraints);
+          } catch (err) {
+            console.log(err);
+            alert('Something went wrong with accessing A/V devices');
+          }
+          if (ls) {
+            setLocalStream(ls);
+            // const mediaStream =
+            setLocalSendingStream(ls);
+            setVideoCallVisible(true);
+            createRTCPeerConnection();
+          } else
+            toast({
+              title: 'No video/audio media device found',
+              variant: 'destructive',
+            });
+        } else {
+          setLocalSendingStream(localStream);
           setVideoCallVisible(true);
           createRTCPeerConnection();
-        } else
-          toast({
-            title: 'No video/audio media device found',
-            variant: 'destructive',
-          });
+        }
       });
     } else
       toast({

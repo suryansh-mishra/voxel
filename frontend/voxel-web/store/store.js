@@ -14,6 +14,7 @@ const useStore = create((set) => ({
   remoteStream: null, // Peer A/V stream
   createdRoomString: '', // Room string generated so that it is preserved b/w renders from one page to another
 
+  localSendingStream: null,
   localPeerConnObj: null,
   remotePeerConnObj: null,
 
@@ -23,6 +24,7 @@ const useStore = create((set) => ({
   setCreatedRoomString: (val) => set(() => ({ createdRoomString: val })),
   setRemoteStream: (val) => set(() => ({ remoteStream: val })),
   setLocalStream: (val) => set(() => ({ localStream: val })),
+  setLocalSendingStream: (val) => set(() => ({ localSendingStream: val })),
   setInCall: (val) => set(() => ({ inCall: val })),
   setVideoCallVisible: (val) => set(() => ({ videoCallVisible: val })),
   setSocket: (value) => set(() => ({ socket: value })),
