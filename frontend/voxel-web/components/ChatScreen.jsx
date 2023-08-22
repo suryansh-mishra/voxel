@@ -14,11 +14,11 @@ export default function ChatScreen() {
   const setVideoCallVisible = useStore((state) => state.setVideoCallVisible);
   const videoCallVisible = useStore((state) => state.videoCallVisible);
 
-  useEffect(() => {
-    if (videoRef.current && localSendingStream) {
-      videoRef.current.srcObject = localSendingStream;
-    }
-  }, [localSendingStream, videoRef, videoCallVisible]);
+  // useEffect(() => {
+  //   if (videoRef.current && localSendingStream) {
+  //     videoRef.current.srcObject = localSendingStream;
+  //   }
+  // }, [localSendingStream, videoRef, videoCallVisible]);
 
   return (
     <>

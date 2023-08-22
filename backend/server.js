@@ -4,6 +4,7 @@ const app = require('./app');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const server = require('http').Server(app);
+
 const io = require('socket.io')(server, {
   cors: {
     origin: ['localhost:3000', 'http://localhost:3000'],
@@ -30,20 +31,12 @@ mongoose
     if (process.env.NODE_ENV === 'dev') console.log(err);
   });
 
-/////////////////////////////////////////////////
+const socketToRooms = {};
 
-// const { Console } = require('console');
-/* // get fs module for creating write streams */
-// const fs = require('fs');
-
-/** // make a new logger */
-// const myLogger = new Console({
-//   stdout: fs.createWriteStream('normalStdout.txt'),
-//   stderr: fs.createWriteStream('errStdErr.txt'),
-// });
-////////////////////////
 const roomController = require('./controllers/socketControllers/roomController');
 const User = require('./models/userModel');
+const { SocketAddress } = require('net');
+
 io.use(async (socket, next) => {
   console.log('Socket middleware used');
   const cookies = socket.handshake?.headers?.cookie;
@@ -75,27 +68,60 @@ io.on('connection', (socket) => {
     // room.roomId is the roomId that I use
     socket.leave(socket.id);
     socket.join(room.roomId);
+    socketToRooms[socket.id] = room.roomId;
+    console.log(io.sockets.adapter.rooms);
     console.log(chalk.bgYellow('Created and joined the room ', room.roomId));
     io.to(room.roomId).emit('room_created', room);
   });
 
   // TEMPLATING
   // socket.on('offer', async () {});
-  // socket.on('answer', async () {});
+  // socket.on('answer', async () {})
+
+  socket.on('signal', async (roomId) => {
+    // PERMUTE
+    // A, B, C, D, E => [A, B], [A, C], [A, D], [A, E], [B, C], [B, D], [B, E], [C, D], [C, E], [D, E]
+    const sockets = [...io.sockets.adapter.rooms];
+
+    if (sockets.length < 2)
+      return socket.emit('error', {
+        message: {
+          title: 'Waiting for members',
+          description: 'Not enough members for chat. Waiting for members.',
+        },
+      });
+
+    const socketPairs = [];
+
+    for (i = 0; i < sockets.length - 1; i++)
+      for (j = i + 1; j < sockets.length; j++)
+        socketPairs.push([sockets[i], sockets[j]]);
+
+    console.log(socketPairs);
+    io.to(roomId).emit('mesh', {
+      message: 'Connect in pairs',
+      data: socketPairs,
+    });
+  });
 
   socket.on('join', async (roomId) => {
     // roomId : { roomId : 'String' }
-
-    console.log('Asking to join', roomId);
-    const resp = await roomController.joinRoom(socket, roomId);
-    if (resp.status in ['fail', 'error']) {
+    let resp;
+    try {
+      resp = await roomController.joinRoom(socket, roomId);
+    } catch (err) {
+      console.log(err);
+    }
+    if (resp?.status in ['fail', 'error']) {
       socket.emit('error', resp);
       console.log('Error in joining the room ', room.message);
       return;
     }
+    console.log(io.sockets.adapter.rooms);
     console.log('Joined the room ', resp.message.data.roomId);
     socket.leave(socket.id);
     socket.join(resp.message.data.roomId);
+    socketToRooms[socket.id] = resp.message.data.roomId;
     io.to(resp.message.data.roomId).emit('joined', resp);
   });
 
@@ -122,6 +148,7 @@ server.listen(port, () => {
 });
 
 process.on('unhandledRejection', (reason, promise) => {
+  console.log(reason);
   console.log('Exiting because of unhandled exception');
   process.exit(1);
 });

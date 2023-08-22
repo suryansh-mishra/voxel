@@ -60,7 +60,7 @@ export default function Nav() {
       </ul>
       <div className="flex items-center gap-4">
         <DarkModeToggle />
-        <div className="md:hidden relative ">
+        <div className="md:hidden relative">
           <button
             onClick={toggleHamburger}
             className="hover:bg-accent-light-faded p-2 rounded-full"
@@ -69,20 +69,20 @@ export default function Nav() {
           </button>
           {hamburgerOpen && (
             <nav
-              className={`absolute mt-2 right-0 border dark:border-zinc-700 border-zinc-200 rounded-md backdrop-blur-lg`}
+              className={`absolute mt-2 right-0 border dark:border-zinc-700 border-zinc-200 rounded-lg backdrop-blur-lg`}
             >
               <ul className="px-1 py-1 flex flex-col text-sm">
                 <NavListItem
                   href="/"
                   onClick={toggleHamburger}
-                  className={'block rounded-sm px-8 py-2'}
+                  className={'block rounded-lg px-8 py-2'}
                 >
                   Home
                 </NavListItem>
                 <NavListItem
                   href="/chats"
                   onClick={toggleHamburger}
-                  className={'block rounded-sm px-8 py-2'}
+                  className={'block rounded-lg px-8 py-2'}
                 >
                   Chats
                 </NavListItem>

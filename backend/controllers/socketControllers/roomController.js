@@ -5,6 +5,8 @@ const ShortUniqueId = require('short-unique-id');
 const User = require('../../models/userModel');
 const AppError = require('../../utils/appError');
 const uid = new ShortUniqueId({ length: 10 });
+const mongoose = require('mongoose');
+const ObjectId = mongoose.Types.ObjectId;
 
 exports.createRoom = async (socket) => {
   try {
@@ -68,9 +70,12 @@ exports.joinRoom = async (socket, roomId) => {
     // END THAT MEETING IF REQUIRED ?
     // TODO : Handle logic to end the meeting when all users leave the room
   }
-
-  room.participants.push(socket.userId);
-  room.activeParticipantsCount += 1;
+  console.log(typeof room.participants, room.participants);
+  let userIndex = room.participants.findIndex((el) => el === socket.userId);
+  if (userIndex === -1) {
+    room.participants.push(socket.userId);
+    room.activePasrticipantsCount += 1;
+  }
 
   try {
     room = await room.save();

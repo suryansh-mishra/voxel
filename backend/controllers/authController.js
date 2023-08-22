@@ -6,7 +6,6 @@ const AppError = require('../utils/appError');
 
 const signJWT = (id, email) => {
   const payload = { email, id };
-  // const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '30d' });
   const token = jwt.sign(payload, process.env.JWT_SECRET);
   return token;
 };
@@ -15,28 +14,12 @@ const verifyJWT = (req) => {
   const { jwt: token } = req.cookies;
 
   const decoded = decodeJWT(token);
-  if (decoded.error)
-    return res.status(401).json({
-      status: 'fail',
-      data: {
-        message:
-          decoded.error && decoded.message
-            ? 'Invalid authentication'
-            : 'Please sign in to use this resource',
-      },
-    });
-
   // FIXME : CHECK FOR TOKEN EXPIRY ALSO
   return { decoded };
 };
 
-exports.register = async (req, res) => {
-  try {
-    console.log(req);
-    const { tokens } = await oAuth2Client.getToken(req.body.code);
-    console.log(tokens);
-    // const user = await User.create(req.body);
-  } catch (err) {}
+exports.logout = async (req, res) => {
+  console.log('Hit the logout route');
 };
 
 exports.login = async (req, res) => {
@@ -107,8 +90,7 @@ exports.isLoggedIn = async (req, res) => {
   console.log('AT AUTHENTICATION ROUTE');
   try {
     const authToken = verifyJWT(req);
-
-    if (authToken.error) {
+    if (authToken?.decoded?.error || !authToken.decoded) {
       res.status(401).json({
         status: 'fail',
         data: {

@@ -1,6 +1,5 @@
 'use client';
 
-import ChatScreen from '@/components/ChatScreen';
 import Nav from '@/components/Nav';
 import { Button } from '@/components/ui/button';
 import {
@@ -17,7 +16,6 @@ import { useToast } from '@/components/ui/use-toast';
 import useStore from '@/store/store';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useRef, useMemo } from 'react';
-import { create } from 'zustand';
 
 function SkeletonChats() {
   return (
@@ -80,7 +78,22 @@ export default function Chats() {
   };
   const mediaConstraints = { video: true, audio: true };
 
-  const createOffer = () => {};
+  const signal = () => {};
+
+  const createOffer = () => {
+    localPeerConnObj
+      .createOffer()
+      .then((offer) => {
+        localPeerConnObj.setLocalDescription(offer);
+        socket.emit('offer', {
+          offer,
+          roomId: currentRoom,
+        });
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+  };
 
   const createAnswer = () => {};
 
@@ -116,7 +129,7 @@ export default function Chats() {
     // Gotta take care I don't allow rooms which are inactive to be joined on the backend
     // Why doesn't this stop ?
 
-    const tracks = localStream.getTracks();
+    const tracks = localStream?.getTracks();
     tracks?.forEach(async (track) => {
       track.stop();
     });
@@ -126,7 +139,6 @@ export default function Chats() {
     // setLocalPeerConnObj(null);
     setCurrentRoom(null);
     setCreatedRoomString('');
-    setLocalSendingStream(null);
   };
 
   const goToChat = (e) => {
@@ -135,6 +147,7 @@ export default function Chats() {
 
   const createVoxelCall = async () => {
     if (socket) {
+      alert('create voxel running');
       socket.emit('create');
       socket.on('room_created', async (data) => {
         console.log('Room created', data);
@@ -160,7 +173,21 @@ export default function Chats() {
             // const mediaStream =
             setLocalSendingStream(ls);
             setVideoCallVisible(true);
-            createRTCPeerConnection();
+            socket.emit('signal', { roomId: currentRoom });
+            let currentStatus = 'mesh';
+            socket.on('mesh', (data) => {
+              console.log(data);
+              alert('mesh received');
+            });
+            socket.on('error', (data) => {
+              toast({
+                title: data.message.title,
+                description: data.message.description,
+                variant: 'destructive',
+              });
+              currentStatus = 'error';
+            });
+            if (currentStatus !== 'error') createRTCPeerConnection();
           } else
             toast({
               title: 'No video/audio media device found',
@@ -188,8 +215,23 @@ export default function Chats() {
           title: 'Room joined',
           description: 'Move to the chat',
         });
+        socket.emit('signal', { roomId: currentRoom });
+        let currentStatus = 'mesh';
+        socket.on('mesh', (data) => {
+          console.log(data);
+          alert('mesh received');
+        });
+        socket.on('error', (data) => {
+          toast({
+            title: data.message.title,
+            description: data.message.description,
+            variant: 'destructive',
+          });
+          currentStatus = 'error';
+        });
       });
       socket.on('error', (data) => {
+        console.log(data);
         if (data) {
           toast({
             title: 'Invalid Room Id',
@@ -199,6 +241,7 @@ export default function Chats() {
         }
       });
     } else {
+      alert(`${socket} and values ${joinRoomString}`);
       toast({
         title: 'Enter Room Id',
         description: 'Please enter Room Id to join the voxel call',
