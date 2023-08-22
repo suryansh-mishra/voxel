@@ -12,6 +12,8 @@ router.route('/isLoggedIn').get(authController.isLoggedIn);
 // TODO LOGIN ROUTE
 router.route('/login').post(authController.login);
 
+router.route('/logout').post(authController.logout);
+
 // TODO EDIT ROUTE -- LATER HALF
 
 router.route('/edit').patch(authController.authenticate, userController.edit);

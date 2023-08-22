@@ -20,6 +20,23 @@ const verifyJWT = (req) => {
 
 exports.logout = async (req, res) => {
   console.log('Hit the logout route');
+  const cookieOptions = {
+    expires: new Date(
+      Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000
+    ),
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+  };
+
+  return res
+    .cookie('jwt', null, cookieOptions)
+    .status(200)
+    .json({
+      status: 'success',
+      data: {
+        message: 'You have been successfully logged out',
+      },
+    });
 };
 
 exports.login = async (req, res) => {

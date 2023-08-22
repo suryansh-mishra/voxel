@@ -5,6 +5,9 @@ import Image from 'next/image';
 import Link from 'next/link';
 import DarkModeToggle from './dark.mode.toggle';
 import { BiMenuAltRight } from 'react-icons/bi';
+import axios from 'axios';
+import useStore from '@/store/store';
+import { useToast } from './ui/use-toast';
 
 function NavListItem({ children, href, className, onClick }) {
   return (
@@ -26,7 +29,10 @@ function NavListItem({ children, href, className, onClick }) {
 function NavListButton({ children, onClick }) {
   return (
     <li>
-      <button className="px-4 dark:text-zinc-300 text-zinc-700 cursor-pointer duration-75 hover:bg-red-600 hover:text-red-100 py-1 hover:bg-opacity-80 rounded-full ease-in">
+      <button
+        className="px-4 dark:text-zinc-300 text-zinc-700 cursor-pointer duration-75 hover:bg-red-600 hover:text-red-100 py-1 hover:bg-opacity-80 rounded-full ease-in"
+        onClick={onClick}
+      >
         {children}
       </button>
     </li>
@@ -35,9 +41,22 @@ function NavListButton({ children, onClick }) {
 
 export default function Nav() {
   const [hamburgerOpen, setHamburgerOpen] = useState(false);
+  const setIsLoggedIn = useStore((state) => state.setIsLoggedIn);
+  const setUser = useStore((state) => state.setUser);
+  const { toast } = useToast();
 
   const toggleHamburger = () => {
     setHamburgerOpen(!hamburgerOpen);
+  };
+
+  const handleLogout = async () => {
+    await axios.post(`${process.env.NEXT_PUBLIC_SERVER}/users/logout`);
+    toast({
+      title: 'Logged out',
+      description: "You've been successfully logged out",
+    });
+    setUser(null);
+    setIsLoggedIn(false);
   };
 
   return (
@@ -56,7 +75,7 @@ export default function Nav() {
       <ul className="md:flex hidden flex-row gap-2 text-sm items-baseline justify-self-end mr-20">
         <NavListItem href="/">Home</NavListItem>
         <NavListItem href="/chats">Chats</NavListItem>
-        <NavListButton>Logout</NavListButton>
+        <NavListButton onClick={handleLogout}>Logout</NavListButton>
       </ul>
       <div className="flex items-center gap-4">
         <DarkModeToggle />
