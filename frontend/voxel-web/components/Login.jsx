@@ -103,11 +103,6 @@ export default function Login() {
         <span className="block mt-2 text-zinc-300 text-xs">
           &copy; copyrights no rights reserved
         </span>
-
-        <div>
-          {isLoggedIn && <p>Is logged in!</p>}
-          {<p>{JSON.stringify(user)} </p>}
-        </div>
       </footer>
     </>
   );

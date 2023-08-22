@@ -55,7 +55,7 @@ export default function Nav() {
       title: 'Logged out',
       description: "You've been successfully logged out",
     });
-    setUser(null);
+    setUser({});
     setIsLoggedIn(false);
   };
 
