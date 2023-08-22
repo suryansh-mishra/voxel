@@ -31,8 +31,6 @@ mongoose
     if (process.env.NODE_ENV === 'dev') console.log(err);
   });
 
-const socketToRooms = {};
-
 const roomController = require('./controllers/socketControllers/roomController');
 const User = require('./models/userModel');
 const { SocketAddress } = require('net');
@@ -79,10 +77,18 @@ io.on('connection', (socket) => {
   // socket.on('answer', async () {})
 
   socket.on('signal', async (roomId) => {
-    // PERMUTE
+    console.log('Received request from ', socket.id);
     // A, B, C, D, E => [A, B], [A, C], [A, D], [A, E], [B, C], [B, D], [B, E], [C, D], [C, E], [D, E]
-    const sockets = [...io.sockets.adapter.rooms];
+    const isValidRoom = Boolean(io.sockets.adapter.rooms.get(roomId));
+    if (!isValidRoom)
+      return socket.emit('error', {
+        message: {
+          title: 'Something went wrong',
+          description: 'The room was not correctly found',
+        },
+      });
 
+    const sockets = [...io.sockets.adapter.rooms.get(roomId)];
     if (sockets.length < 2)
       return socket.emit('error', {
         message: {
@@ -97,7 +103,7 @@ io.on('connection', (socket) => {
       for (j = i + 1; j < sockets.length; j++)
         socketPairs.push([sockets[i], sockets[j]]);
 
-    console.log(socketPairs);
+    console.log('SOCKET PAIRS', socketPairs);
     io.to(roomId).emit('mesh', {
       message: 'Connect in pairs',
       data: socketPairs,

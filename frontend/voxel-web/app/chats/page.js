@@ -147,12 +147,12 @@ export default function Chats() {
 
   const createVoxelCall = async () => {
     if (socket) {
-      alert('create voxel running');
       socket.emit('create');
       socket.on('room_created', async (data) => {
         console.log('Room created', data);
         setCurrentRoom(data.roomId);
         setCreatedRoomString(data.roomId);
+        alert(`Room id : ${data.roomId}.`);
         // GET LOCAL MEDIA STREAM
         toast({
           title: 'Voxel call created',
@@ -170,10 +170,9 @@ export default function Chats() {
           }
           if (ls) {
             setLocalStream(ls);
-            // const mediaStream =
             setLocalSendingStream(ls);
             setVideoCallVisible(true);
-            socket.emit('signal', { roomId: currentRoom });
+            socket.emit('signal', data.roomId);
             let currentStatus = 'mesh';
             socket.on('mesh', (data) => {
               console.log(data);
@@ -199,55 +198,38 @@ export default function Chats() {
           createRTCPeerConnection();
         }
       });
-    } else
+    } else {
+      console.log(`Local stream available  : ${Boolean(localStream)}`);
       toast({
         title: 'Error connecting to servers',
       });
+    }
   };
 
   const joinVoxelCall = () => {
     if (socket && joinRoomString) {
       socket.emit('join', { roomId: joinRoomString });
       socket.on('joined', (data) => {
-        alert('Joined', data);
-        setCurrentRoom(data.roomId);
+        setCurrentRoom(data.message.data.roomId);
         toast({
-          title: 'Room joined',
-          description: 'Move to the chat',
+          title: data.message.title,
+          description: data.message.description,
         });
-        socket.emit('signal', { roomId: currentRoom });
-        let currentStatus = 'mesh';
-        socket.on('mesh', (data) => {
-          console.log(data);
-          alert('mesh received');
-        });
-        socket.on('error', (data) => {
-          toast({
-            title: data.message.title,
-            description: data.message.description,
-            variant: 'destructive',
-          });
-          currentStatus = 'error';
-        });
+        socket.emit('signal', data.message.data.roomId);
       });
-      socket.on('error', (data) => {
+
+      socket.on('mesh', (data) => {
         console.log(data);
-        if (data) {
-          toast({
-            title: 'Invalid Room Id',
-            description: 'Please try with a valid room',
-            variant: 'destructive',
-          });
-        }
-      });
-    } else {
-      alert(`${socket} and values ${joinRoomString}`);
-      toast({
-        title: 'Enter Room Id',
-        description: 'Please enter Room Id to join the voxel call',
-        variant: 'destructive',
+        alert('mesh received');
       });
     }
+    socket.on('error', (data) => {
+      toast({
+        title: data.message.title,
+        description: data.message.description,
+        variant: 'destructive',
+      });
+    });
   };
 
   const joinRoomInputHandler = (e) => {
