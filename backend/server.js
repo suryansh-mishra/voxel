@@ -66,19 +66,41 @@ io.on('connection', (socket) => {
     // room.roomId is the roomId that I use
     socket.leave(socket.id);
     socket.join(room.roomId);
-    socketToRooms[socket.id] = room.roomId;
     console.log(io.sockets.adapter.rooms);
     console.log(chalk.bgYellow('Created and joined the room ', room.roomId));
     io.to(room.roomId).emit('room_created', room);
   });
 
-  // TEMPLATING
-  // socket.on('offer', async () {});
-  // socket.on('answer', async () {})
+  socket.on('offer', async (data) => {
+    const socketId = data.socketId;
+    const offer = data.offer;
+    io.to(socketId).emit('offer', {
+      status: 'success',
+      message: {
+        data: {
+          socketId: socket.id,
+          offer: offer,
+        },
+      },
+    });
+  });
+
+  socket.on('answer', async (data) => {
+    const socketId = data.socketId;
+    const answer = data.answer;
+    io.to(socketId).emit('answer', {
+      status: 'success',
+      message: {
+        data: {
+          socketId: socket.id,
+          answer: answer,
+        },
+      },
+    });
+  });
 
   socket.on('signal', async (roomId) => {
     console.log('Received request from ', socket.id);
-    // A, B, C, D, E => [A, B], [A, C], [A, D], [A, E], [B, C], [B, D], [B, E], [C, D], [C, E], [D, E]
     const isValidRoom = Boolean(io.sockets.adapter.rooms.get(roomId));
     if (!isValidRoom)
       return socket.emit('error', {
@@ -106,7 +128,10 @@ io.on('connection', (socket) => {
     console.log('SOCKET PAIRS', socketPairs);
     io.to(roomId).emit('mesh', {
       message: 'Connect in pairs',
-      data: socketPairs,
+      data: {
+        socketCount: sockets.length,
+        socketPairs,
+      },
     });
   });
 
@@ -127,7 +152,6 @@ io.on('connection', (socket) => {
     console.log('Joined the room ', resp.message.data.roomId);
     socket.leave(socket.id);
     socket.join(resp.message.data.roomId);
-    socketToRooms[socket.id] = resp.message.data.roomId;
     io.to(resp.message.data.roomId).emit('joined', resp);
   });
 

@@ -16,6 +16,7 @@ import { useToast } from '@/components/ui/use-toast';
 import useStore from '@/store/store';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useRef, useMemo } from 'react';
+import { useVideoCallStore } from '@/store/store';
 
 function SkeletonChats() {
   return (
@@ -40,10 +41,15 @@ export default function Chats() {
   const joinInputRef = useRef(null);
 
   const currentRoom = useStore((state) => state.currentRoom);
-  const localPeerConnObj = useStore((state) => state.localPeerConnObj);
-  const remotePeerConnObj = useStore((state) => state.remotePeerConnObj);
-  const setLocalPeerConnObj = useStore((state) => state.setLocalPeerConnObj);
-  const setRemotePeerConnObj = useStore((state) => state.setRemotePeerConnObj);
+
+  const peerConnections = useVideoCallStore((state) => state.peerConnections);
+  const setPeerConnection = useVideoCallStore(
+    (state) => state.setPeerConnections
+  );
+  const removePeerConnection = useVideoCallStore(
+    (state) => state.removePeerConnection
+  );
+
   const isLoggedIn = useStore((state) => state.isLoggedIn);
   const socket = useStore((state) => state.socket);
   const localStream = useStore((state) => state.localStream);
@@ -78,22 +84,20 @@ export default function Chats() {
   };
   const mediaConstraints = { video: true, audio: true };
 
-  const signal = () => {};
-
-  const createOffer = () => {
-    localPeerConnObj
-      .createOffer()
-      .then((offer) => {
-        localPeerConnObj.setLocalDescription(offer);
-        socket.emit('offer', {
-          offer,
-          roomId: currentRoom,
-        });
-      })
-      .catch((err) => {
-        console.log(err);
-      });
-  };
+  // const createOffer = () => {
+  //   localPeerConnObj
+  //     .createOffer()
+  //     .then((offer) => {
+  //       localPeerConnObj.setLocalDescription(offer);
+  //       socket.emit('offer', {
+  //         offer,
+  //         roomId: currentRoom,
+  //       });
+  //     })
+  //     .catch((err) => {
+  //       console.log(err);
+  //     });
+  // };
 
   const createAnswer = () => {};
 
@@ -114,14 +118,6 @@ export default function Chats() {
   };
   const handleConnectionChange = (e) => {
     alert('At handle conn change');
-  };
-
-  const createRTCPeerConnection = () => {
-    const lpc = new RTCPeerConnection(servers);
-    lpc.addEventListener('icecandidate', handleConnection);
-    lpc.addEventListener('iceconnectionstatechange', handleConnectionChange);
-    setLocalPeerConnObj(lpc);
-    // lpc.addStream(localStream);
   };
 
   const endCall = () => {
@@ -148,11 +144,66 @@ export default function Chats() {
   const createVoxelCall = async () => {
     if (socket) {
       socket.emit('create');
+    } else {
+      console.log(`Local stream available  : ${Boolean(localStream)}`);
+      toast({
+        title: 'Error connecting to servers',
+      });
+    }
+  };
+
+  const initRTCPeerConnections = (socketCounts, socketPairs) => {
+    socketPairs.forEach(async (el) => {
+      if (el.at(0) === socket.id) {
+        const pc = new RTCPeerConnection(servers);
+        setPeerConnection(el[1], pc);
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        socket.emit('offer', { socketId: el[1], offer: offer });
+      }
+    });
+  };
+
+  const joinVoxelCall = () => {
+    if (socket && joinRoomString) {
+      socket.emit('join', { roomId: joinRoomString });
+
+      'mesh',
+        (data) => {
+          initRTCPeerConnections();
+          // createRTCOffer();
+          console.log(data.socketPairs);
+          alert('mesh received');
+        };
+    }
+  };
+
+  const joinRoomInputHandler = (e) => {
+    if (e) setJoinRoomString(e.target.value);
+  };
+
+  const clearPreviousRoom = () => {
+    setCurrentRoom('');
+    setLocalSendingStream(null);
+    setCreatedRoomString('');
+    setJoinRoomString('');
+  };
+
+  useEffect(() => {
+    if (!isLoggedIn) router.push('/');
+  }, [isLoggedIn]);
+
+  useEffect(() => {
+    if (socket) {
+      socket.on('connection', () => {
+        alert('Connected');
+      });
+
       socket.on('room_created', async (data) => {
-        console.log('Room created', data);
+        clearPreviousRoom();
+        alert('Room created received');
         setCurrentRoom(data.roomId);
         setCreatedRoomString(data.roomId);
-        alert(`Room id : ${data.roomId}.`);
         // GET LOCAL MEDIA STREAM
         toast({
           title: 'Voxel call created',
@@ -172,21 +223,8 @@ export default function Chats() {
             setLocalStream(ls);
             setLocalSendingStream(ls);
             setVideoCallVisible(true);
+            alert('Sending a signal');
             socket.emit('signal', data.roomId);
-            let currentStatus = 'mesh';
-            socket.on('mesh', (data) => {
-              console.log(data);
-              alert('mesh received');
-            });
-            socket.on('error', (data) => {
-              toast({
-                title: data.message.title,
-                description: data.message.description,
-                variant: 'destructive',
-              });
-              currentStatus = 'error';
-            });
-            if (currentStatus !== 'error') createRTCPeerConnection();
           } else
             toast({
               title: 'No video/audio media device found',
@@ -195,20 +233,9 @@ export default function Chats() {
         } else {
           setLocalSendingStream(localStream);
           setVideoCallVisible(true);
-          createRTCPeerConnection();
         }
       });
-    } else {
-      console.log(`Local stream available  : ${Boolean(localStream)}`);
-      toast({
-        title: 'Error connecting to servers',
-      });
-    }
-  };
 
-  const joinVoxelCall = () => {
-    if (socket && joinRoomString) {
-      socket.emit('join', { roomId: joinRoomString });
       socket.on('joined', (data) => {
         setCurrentRoom(data.message.data.roomId);
         toast({
@@ -221,24 +248,43 @@ export default function Chats() {
       socket.on('mesh', (data) => {
         console.log(data);
         alert('mesh received');
+        data.forEach((pair) => {
+          // FORM THE MESH PAIRS IN RTC
+        });
+      });
+
+      socket.on('offer', async (data) => {
+        if (data.message.data.offer) {
+          const pc = new RTCPeerConnection();
+          setPeerConnection(data.message.data.socketId);
+          await pc.setRemoteDescription(
+            new RTCSessionDescription(data.message.data.offer)
+          );
+
+          const answer = await pc.createAnswer();
+          await pc.setLocalDescription(answer);
+          socket.emit('answer', {
+            socketId: data.message.data.socketId,
+            answer,
+          });
+        }
+      });
+
+      socket.on('answer', async (data) => {
+        if (data.message.data.answer) {
+        }
+      });
+
+      socket.on('error', (data) => {
+        alert('ERROR : ', data.message.title);
+        toast({
+          title: data.message.title,
+          description: data.message.description,
+          variant: 'destructive',
+        });
       });
     }
-    socket.on('error', (data) => {
-      toast({
-        title: data.message.title,
-        description: data.message.description,
-        variant: 'destructive',
-      });
-    });
-  };
-
-  const joinRoomInputHandler = (e) => {
-    if (e) setJoinRoomString(e.target.value);
-  };
-
-  useEffect(() => {
-    if (!isLoggedIn) router.push('/');
-  }, [isLoggedIn]);
+  }, [socket]);
 
   return (
     <>

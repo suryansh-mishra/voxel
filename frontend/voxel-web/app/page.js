@@ -1,4 +1,5 @@
 'use client';
+
 import Login from '@/components/Login';
 import useStore from '@/store/store';
 import { GoogleOAuthProvider } from '@react-oauth/google';
@@ -30,7 +31,7 @@ export default function HomePage() {
           if (user.data.data.user) {
             setIsLoggedIn(true);
             setUser(user.data.data.user);
-
+            setIsLoggedInLoading(false);
             const socket = new io(
               `${process.env.NEXT_PUBLIC_SERVER_URI_BASE}`,
               {
@@ -46,10 +47,11 @@ export default function HomePage() {
             description: 'Please sign in to voxel',
             variant: 'destructive',
           });
-        })
-        .finally(setIsLoggedInLoading(false));
+          setIsLoggedInLoading(false);
+        });
     }
   }, []);
+
   return (
     <GoogleOAuthProvider clientId="943016074848-p637kqbq05gqfam1svrjtt58evjk2et1.apps.googleusercontent.com">
       {isLoggedInLoading && !isLoggedIn && <SplashScreen />}
