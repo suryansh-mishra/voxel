@@ -13,19 +13,21 @@ export default function ChatScreen() {
   const localSendingStream = useStore((state) => state.localSendingStream);
   const setVideoCallVisible = useStore((state) => state.setVideoCallVisible);
   const videoCallVisible = useStore((state) => state.videoCallVisible);
+  // const remoteStreams
+  // const remoteMediaStream = new MediaStream()
 
-  // useEffect(() => {
-  //   if (videoRef.current && localSendingStream) {
-  //     videoRef.current.srcObject = localSendingStream;
-  //   }
-  // }, [localSendingStream, videoRef, videoCallVisible]);
+  useEffect(() => {
+    if (videoRef.current && localSendingStream) {
+      videoRef.current.srcObject = localSendingStream;
+    }
+  }, [localSendingStream, videoRef, videoCallVisible]);
 
   return (
     <>
       {videoCallVisible && (
         <div className="flex flex-col items-center fixed justify-center h-[97dvh] top-5 left-0 mx-5 backdrop-blur-xl rounded-xl">
           <header className="flex px-4 w-full items-center justify-between">
-            <h1 className="py-2 font-semibold">room admin's rooms</h1>
+            <h1 className="py-2 font-semibold">Video Call</h1>
 
             <button
               className="text-sm p-1.5 flex items-center justify-center dark:bg-zinc-800 dark:hover:bg-zinc-600 bg-zinc-200 hover:bg-zinc-300 rounded-full aspect-square"

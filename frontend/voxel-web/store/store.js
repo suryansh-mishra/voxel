@@ -75,20 +75,4 @@ export const useVideoCallStore = create((set) => ({
     }),
 }));
 
-// const useVideoCallStore = create((set) => ({
-//   peerConnections: {},
-//   setPeerConnection: (socketId, val) =>
-//     set((state) => ({
-//       peerConnections: { ...state.peerConnections, [socketId]: val },
-//     })),
-//   removePeerConnection: (socketId) =>
-//     set((state) => {
-//       const pcObject = { ...state.peerConnections };
-//       delete pcObject[socketId];
-//       return {
-//         peerConnections: { ...pcObject },
-//       };
-//     }),
-// }));
-
 export default useStore;

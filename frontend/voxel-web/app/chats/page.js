@@ -17,6 +17,7 @@ import useStore from '@/store/store';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useRef, useMemo } from 'react';
 import { useVideoCallStore } from '@/store/store';
+import { PiSteps } from 'react-icons/pi';
 
 function SkeletonChats() {
   return (
@@ -40,8 +41,6 @@ export default function Chats() {
   const [joinRoomString, setJoinRoomString] = useState('');
   const joinInputRef = useRef(null);
 
-  const currentRoom = useStore((state) => state.currentRoom);
-
   const peerConnections = useVideoCallStore((state) => state.peerConnections);
   const setPeerConnection = useVideoCallStore(
     (state) => state.setPeerConnections
@@ -50,6 +49,7 @@ export default function Chats() {
     (state) => state.removePeerConnection
   );
 
+  const inCall = useStore((state) => state.inCall);
   const isLoggedIn = useStore((state) => state.isLoggedIn);
   const socket = useStore((state) => state.socket);
   const localStream = useStore((state) => state.localStream);
@@ -60,6 +60,7 @@ export default function Chats() {
   const setLocalSendingStream = useStore(
     (state) => state.setLocalSendingStream
   );
+  const setInCall = useStore((state) => state.setInCall);
   const setLocalStream = useStore((state) => state.setLocalStream);
   const setCurrentRoom = useStore((state) => state.setCurrentRoom);
 
@@ -137,13 +138,29 @@ export default function Chats() {
     setCreatedRoomString('');
   };
 
-  const goToChat = (e) => {
-    setVideoCallVisible(true);
+  const endChat = () => {
+    setCurrentRoom(null);
+    setCreatedRoomString('');
+    setVideoCallVisible(false);
   };
 
+  const showVideoCall = (e) => {
+    setVideoCallVisible(true);
+  };
+  const createVoxelRoom = async () => {
+    if (socket) {
+      console.log('Room creation');
+      socket.emit('create_room');
+    } else {
+      toast({
+        title: 'Error connecting to servers',
+      });
+    }
+  };
   const createVoxelCall = async () => {
     if (socket) {
-      socket.emit('create');
+      console.log('Call creation');
+      socket.emit('create_call');
     } else {
       console.log(`Local stream available  : ${Boolean(localStream)}`);
       toast({
@@ -152,29 +169,29 @@ export default function Chats() {
     }
   };
 
-  const initRTCPeerConnections = (socketCounts, socketPairs) => {
-    socketPairs.forEach(async (el) => {
-      if (el.at(0) === socket.id) {
-        const pc = new RTCPeerConnection(servers);
-        setPeerConnection(el[1], pc);
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-        socket.emit('offer', { socketId: el[1], offer: offer });
-      }
-    });
-  };
+  // const initRTCPeerConnections = (socketCounts, socketPairs) => {
+  //   socketPairs.forEach(async (el) => {
+  //     if (el.at(0) === socket.id) {
+  //       const pc = new RTCPeerConnection(servers);
+  //       setPeerConnection(el[1], pc);
+  //       const offer = await pc.createOffer();
+  //       await pc.setLocalDescription(offer);
+  //       socket.emit('offer', { socketId: el[1], offer: offer });
+  //     }
+  //   });
+  // };
 
   const joinVoxelCall = () => {
     if (socket && joinRoomString) {
       socket.emit('join', { roomId: joinRoomString });
 
-      'mesh',
-        (data) => {
-          initRTCPeerConnections();
-          // createRTCOffer();
-          console.log(data.socketPairs);
-          alert('mesh received');
-        };
+      // 'mesh',
+      //   (data) => {
+      //     initRTCPeerConnections();
+      //     // createRTCOffer();
+      //     console.log(data.socketPairs);
+      //     alert('mesh received');
+      //   };
     }
   };
 
@@ -195,20 +212,15 @@ export default function Chats() {
 
   useEffect(() => {
     if (socket) {
-      socket.on('connection', () => {
-        alert('Connected');
-      });
-
       socket.on('room_created', async (data) => {
         clearPreviousRoom();
-        alert('Room created received');
         setCurrentRoom(data.roomId);
         setCreatedRoomString(data.roomId);
         // GET LOCAL MEDIA STREAM
         toast({
-          title: 'Voxel call created',
+          title: 'Voxel room created',
           description:
-            'Ask them to join your voxel call by copying the room id',
+            'Ask them to join your voxel chat by copying the room id',
         });
 
         if (!localStream) {
@@ -223,8 +235,8 @@ export default function Chats() {
             setLocalStream(ls);
             setLocalSendingStream(ls);
             setVideoCallVisible(true);
-            alert('Sending a signal');
-            socket.emit('signal', data.roomId);
+            // alert('Sending a signal');
+            // socket.emit('signal', data.roomId);
           } else
             toast({
               title: 'No video/audio media device found',
@@ -248,15 +260,23 @@ export default function Chats() {
       socket.on('mesh', (data) => {
         console.log(data);
         alert('mesh received');
-        data.forEach((pair) => {
-          // FORM THE MESH PAIRS IN RTC
-        });
+        // data?.message?.data?.socketPairs?.forEach((pair) => {
+        //   // FORM THE MESH PAIRS IN RTC
+        //   initRTCPeerConnections(
+        //     data?.message?.data?.socketCounts,
+        //     data?.message?.data?.socketPairs
+        //   );
+        // });
+
+        console.log(
+          'SUCCESSFULLY REACHED THIS POINT, PROCEED TO MAKE MESH WORK!!!'
+        );
       });
 
       socket.on('offer', async (data) => {
         if (data.message.data.offer) {
           const pc = new RTCPeerConnection();
-          setPeerConnection(data.message.data.socketId);
+          setPeerConnection(data.message.data.socketId, pc);
           await pc.setRemoteDescription(
             new RTCSessionDescription(data.message.data.offer)
           );
@@ -276,7 +296,8 @@ export default function Chats() {
       });
 
       socket.on('error', (data) => {
-        alert('ERROR : ', data.message.title);
+        console.log('error', data);
+        alert(`ERROR :  ${data.message.title}`);
         toast({
           title: data.message.title,
           description: data.message.description,
