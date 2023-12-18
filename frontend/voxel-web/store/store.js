@@ -7,6 +7,10 @@ const useStore = create((set) => ({
   socket: null,
   user: {},
 
+  isAudioOn: true,
+  isMuted: false,
+
+  peerConnection: null,
   currentRoom: '', // Also indicates the user is inCall
   videoCallVisible: false, // Indicates whether or not to show the video
   inCall: false, //  Not really needed, pending removal in near future
@@ -16,38 +20,10 @@ const useStore = create((set) => ({
 
   localSendingStream: null,
 
-  // LPC - Local Peer Connection & RPC - Remote Peer Connection
+  setIsAudioOn: (val) => set(() => ({ isAudioOn: val })),
+  setIsMuted: (val) => set(() => ({ isMuted: val })),
 
-  // LPCs: new Map(),
-  // RPCs: new Map(),
-
-  // setLocalPeerConnObject: (socketId, val) =>
-  //   set((state) => {
-  //     localPeerConnObjects: new Map(state.localPeerConnObjects).set(
-  //       socketId,
-  //       val
-  //     );
-  //   }),
-  // unsetLocalPeerConnObject: (socketId) =>
-  //   set((state) => {
-  //     localPeerConnObjects: new Map(state.localPeerConnObjects).delete(
-  //       socketId
-  //     );
-  //   }),
-  // setRemotePeerConnObject: (socketId, val) =>
-  //   set((state) => {
-  //     remotePeerConnObjects: new Map(state.localPeerConnObjects).set(
-  //       socketId,
-  //       val
-  //     );
-  //   }),
-  // unsetRemotePeerConnObject: (socketId) =>
-  //   set((state) => {
-  //     remotePeerConnObjects: new Map(state.localPeerConnObjects).delete(
-  //       socketId
-  //     );
-  //   }),
-
+  setPeerConnection: (val) => set(() => ({ peerConnection: val })),
   setCurrentRoom: (val) => set(() => ({ currentRoom: val })),
   setCreatedRoomString: (val) => set(() => ({ createdRoomString: val })),
   setRemoteStream: (val) => set(() => ({ remoteStream: val })),
@@ -61,18 +37,18 @@ const useStore = create((set) => ({
   setIsLoggedIn: (value) => set((state) => ({ isLoggedIn: value })),
 }));
 
-export const useVideoCallStore = create((set) => ({
-  peerConnections: new Map(),
-  setPeerConnection: (socketId, val) =>
-    set((state) => ({
-      peerConnections: new Map(state.peerConnections).set(socketId, val),
-    })),
-  removePeerConnection: (socketId) =>
-    set((state) => {
-      const pcs = new Map(state.peerConnections);
-      pcs.delete(socketId);
-      return { peerConnections: pcs };
-    }),
-}));
+// export const useVideoCallStore = create((set) => ({
+//   peerConnections: new Map(),
+//   setPeerConnection: (socketId, val) =>
+//     set((state) => ({
+//       peerConnections: new Map(state.peerConnections).set(socketId, val),
+//     })),
+//   removePeerConnection: (socketId) =>
+//     set((state) => {
+//       const pcs = new Map(state.peerConnections);
+//       pcs.delete(socketId);
+//       return { peerConnections: pcs };
+//     }),
+// }));
 
 export default useStore;

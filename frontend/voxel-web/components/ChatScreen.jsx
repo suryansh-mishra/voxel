@@ -8,19 +8,34 @@ import { BsCaretDown } from 'react-icons/bs';
 
 export default function ChatScreen() {
   const { toast } = useToast();
-  const videoRef = useRef(null);
+  const localVideoRef = useRef(null);
+  const remoteVideoRef = useRef(null);
+
+  const isMuted = useStore((state) => state.isMuted);
+
   const localStream = useStore((state) => state.localStream);
+  const remoteStream = useStore((state) => state.remoteStream);
   const localSendingStream = useStore((state) => state.localSendingStream);
   const setVideoCallVisible = useStore((state) => state.setVideoCallVisible);
   const videoCallVisible = useStore((state) => state.videoCallVisible);
-  // const remoteStreams
-  // const remoteMediaStream = new MediaStream()
 
   useEffect(() => {
-    if (videoRef.current && localSendingStream) {
-      videoRef.current.srcObject = localSendingStream;
+    if (localVideoRef.current && localSendingStream) {
+      console.log('Video stream available', localSendingStream);
+      localVideoRef.current.srcObject = localSendingStream;
     }
-  }, [localSendingStream, videoRef, videoCallVisible]);
+    if (remoteVideoRef.current && remoteStream) {
+      console.log('Remote stream object changed');
+      console.log('Remote video stream available', remoteStream);
+      remoteVideoRef.current.srcObject = remoteStream;
+    }
+  }, [
+    localSendingStream,
+    remoteVideoRef,
+    remoteStream,
+    localVideoRef,
+    videoCallVisible,
+  ]);
 
   return (
     <>
@@ -39,7 +54,8 @@ export default function ChatScreen() {
 
           {/* VIDEO GRID */}
           <div className="h-[90dvh] w-full flex flex-wrap overflow-hidden justify-around outline-2   border-spacing-2 px-2 rounded-lg">
-            <VideoBox videoRef={videoRef} />
+            <VideoBox videoRef={localVideoRef} muted={true} />
+            <VideoBox videoRef={remoteVideoRef} muted={isMuted} />
           </div>
           {/* END OF VIDEO GRID */}
 

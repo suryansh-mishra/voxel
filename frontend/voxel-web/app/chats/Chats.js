@@ -1,5 +1,4 @@
 'use client';
-
 import Nav from '@/components/Nav';
 import { Button } from '@/components/ui/button';
 import {
@@ -9,27 +8,12 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-
 import { Input } from '@/components/ui/input';
-import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/components/ui/use-toast';
 import useStore from '@/store/store';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
-
-function SkeletonChats() {
-  return (
-    <div>
-      <div className="flex items-center space-x-4">
-        <Skeleton className="h-12 w-12 rounded-full" />
-        <div className="space-y-2">
-          <Skeleton className="h-4 w-[250px]" />
-          <Skeleton className="h-4 w-[200px]" />
-        </div>
-      </div>
-    </div>
-  );
-}
+import { SkeletonChats } from './page';
 
 export default function Chats() {
   const router = useRouter();
@@ -48,19 +32,19 @@ export default function Chats() {
   const createdRoomString = useStore((state) => state.createdRoomString);
   const videoCallVisible = useStore((state) => state.videoCallVisible);
 
-  const setRemoteStream = useStore((state) => state.setRemoteStream);
   const setCreatedRoomString = useStore((state) => state.setCreatedRoomString);
   const setPeerConnection = useStore((state) => state.setPeerConnection);
   const setVideoCallVisible = useStore((state) => state.setVideoCallVisible);
   const setLocalSendingStream = useStore(
     (state) => state.setLocalSendingStream
   );
-
+  const setInCall = useStore((state) => state.setInCall);
+  const callSetupPhase = useStore((state) => state.callSetupPhase);
+  const setCallSetupPhase = useStore((state) => state.setCallSetupPhase);
   const setLocalStream = useStore((state) => state.setLocalStream);
   const setCurrentRoom = useStore((state) => state.setCurrentRoom);
 
   // TODO : IMPLEMENT ERROR FLOW B/W BACKEND AND FRONTEND FOR ROOMS ETC
-
   const copyToClipboard = async (e) => {
     if (e) e.preventDefault();
     try {
@@ -84,11 +68,11 @@ export default function Chats() {
       {
         urls: [
           'stun:stun1.l.google.com:19302',
-          // 'stun:stun.services.mozilla.com',
+          'stun:stun.services.mozilla.com',
         ],
       },
     ],
-    // iceCandidatePoolSize: 2,
+    iceCandidatePoolSize: 10,
   };
 
   const mediaConstraints = { video: true, audio: true };
@@ -96,46 +80,70 @@ export default function Chats() {
   // CREATE OFFER IS USED FOR CALL
   const createOffer = async () => {
     const pc = new RTCPeerConnection(servers);
+    setPeerConnection(pc);
     const stream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
     setLocalStream(stream);
     setLocalSendingStream(stream);
-    if (!stream)
-      return toast({
-        title: 'Media not available',
-        description: 'A/V devices permission not available for call',
-      });
-    setPeerConnection(pc);
-    const tracks = stream.getTracks();
-    tracks.forEach((track) => {
+    stream.getTracks().forEach((track) => {
       pc.addTrack(track, stream);
     });
+    pc.ontrack = (event) => {
+      event.streams[0].getTracks((track) => {
+        remoteStream.addTrack(track);
+      });
+    };
+
+    pc.onicecandidate = (event) => {
+      if (event.candidate) {
+        socket.emit('candidate', {
+          roomId: currentRoom,
+          candidate: event.candidate,
+        });
+      }
+    };
 
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
-    socket.emit('offer', { roomId: currentRoom, offer });
+
+    pc.ontrack = (event) => {
+      const newStream = new MediaStream();
+      event.streams[0].getTracks().forEach((track) => {
+        newStream.addTrack(track);
+      });
+      setRemoteStream(newStream);
+    };
+
+    if (stream) socket.emit('offer', { roomId: currentRoom, offer });
+    else
+      toast({
+        title: 'Media not available',
+        description: 'A/V devices permission not available for call',
+      });
     setVideoCallVisible(true);
   };
 
-  const createAnswer = async (offer) => {
-    const pc = new RTCPeerConnection();
-    const stream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
-    setLocalStream(stream);
-    setLocalSendingStream(stream);
-    const tracks = stream.getTracks();
-    tracks.forEach((track) => {
-      pc.addTrack(track, stream);
-    });
-    const remoteStream = (pc.ontrack = (event) => {
-      event.streams[0].getTracks((track) => {});
-    });
-    setPeerConnection(pc);
-  };
-
+  // CREATE ANSWER IS USED FOR ANSWERING CALL
+  // const createAnswer = async () => {
+  //   const pc = new RTCPeerConnection(servers);
+  //   setPeerConnection(pc);
+  //   setLocalStream(await navigator.mediaDevices.getUserMedia(mediaConstraints));
+  //   localStream.getTrack.forEach((track) => {
+  //     pc.addTrack(track, localStream);
+  //   });
+  //   pc.ontrack = (event) => {
+  //     event.streams[0].getTracks((track) => {
+  //       remoteStream.addTrack(track);
+  //     });
+  //   };
+  //   const answer = await pc.createAnswer();
+  //   socket.emit('answer', answer);
+  // };
   const endCall = () => {
     const tracks = localStream?.getTracks();
     tracks?.forEach(async (track) => {
       track.stop();
     });
+    // socket.emit('end:call', currentRoom);
     setVideoCallVisible(false);
     setLocalSendingStream(null);
     setPeerConnection(null);
@@ -143,20 +151,29 @@ export default function Chats() {
 
   const endChat = () => {
     if (inCall) endCall();
-    setCurrentRoom('');
+    setCurrentRoom(null);
     setCreatedRoomString('');
   };
 
-  const showVideoCall = (e) => setVideoCallVisible(true);
+  const showVideoCall = (e) => {
+    setVideoCallVisible(true);
+  };
 
-  const createRoom = () => {
-    if (socket) socket.emit('create');
-    else toast({ title: 'Error connecting to servers' });
+  const createRoom = async () => {
+    if (socket) {
+      console.log('Room creation');
+      socket.emit('create');
+    } else {
+      toast({
+        title: 'Error connecting to servers',
+      });
+    }
   };
 
   const joinVoxelChat = () => {
-    if (socket && joinRoomString)
+    if (socket && joinRoomString) {
       socket.emit('join', { roomId: joinRoomString });
+    }
   };
 
   const joinRoomInputHandler = (e) => {
@@ -180,9 +197,11 @@ export default function Chats() {
         clearPreviousRoom();
         setCurrentRoom(data.roomId);
         setCreatedRoomString(data.roomId);
+        // GET LOCAL MEDIA STREAM
         toast({
           title: 'Voxel room created',
-          description: 'Invite your friends. Share Room Id!',
+          description:
+            'Ask them to join your voxel chat by copying the room id',
         });
       });
 
@@ -190,9 +209,52 @@ export default function Chats() {
         setCurrentRoom(data.message.data.roomId);
         toast({
           title: data.message.title,
+          description: data.message.description,
         });
       });
 
+      socket.on('error', async (data) => {});
+
+      socket.on('incoming:call', async (data) => {
+        const pc = new RTCPeerConnection();
+        const offer = data.offer;
+        const offerDescription = new RTCSessionDescription(offer);
+        // pc.setRemoteDescription
+        pc.ontrack = (event) => {
+          const newStream = new MediaStream();
+          event.streams[0].getTracks().forEach((track) => {
+            newStream.addTrack(track);
+          });
+          setRemoteStream(newStream);
+        };
+      });
+
+      socket.on('answer:call', async (data) => {
+        const stream = new MediaStream();
+        const answer = data.message.data.answer;
+        const answerDescription = new RTCSessionDescription(answer);
+        pc.setRemoteDescription(answerDescription);
+        toast({ title: 'Call connected' });
+        setRemoteStream(stream);
+      });
+
+      // socket.on('offer', async (data) => {
+      //   if (data.message.data.offer) {
+      //     const pc = new RTCPeerConnection();
+      //     setPeerConnection(data.message.data.socketId, pc);
+      //     await pc.setRemoteDescription(
+      //       new RTCSessionDescription(data.message.data.offer)
+      //     );
+      //     const answer = await pc.createAnswer();
+      //     await pc.setLocalDescription(answer);
+      //     socket.emit('answer', {
+      //       socketId: data.message.data.socketId,
+      //       answer,
+      //     });
+      //   }
+      // });
+      // socket.on('message')
+      // ADD MESSAGE FUNCTIONALITY
       socket.on('error', (data) => {
         console.log('error', data);
         alert(`ERROR :  ${data.message.title}`);
@@ -204,93 +266,6 @@ export default function Chats() {
       });
     }
   }, [socket]);
-
-  useEffect(() => {
-    if (socket && currentRoom && peerConnection) {
-      // if (!peerConnection?.ontrack)
-      peerConnection.ontrack = (event) => {
-        console.log('WE GOT THE TRAX BABYYYYYY!!!!');
-        toast({ title: 'GOT THE TRAX' });
-        if (event) {
-          const newStream = new MediaStream();
-          event.streams[0].getTracks().forEach((track) => {
-            newStream.addTrack(track);
-          });
-          setRemoteStream(newStream);
-        }
-      };
-
-      peerConnection.onicecandidate = (event) => {
-        if (event.candidate) {
-          console.log('WE PROCESSED ICE : ', event);
-          socket.emit('candidate', {
-            roomId: currentRoom,
-            candidate: event.candidate,
-          });
-        }
-      };
-
-      socket.on('answer:call', async (data) => {
-        const answer = data.message.data.answer;
-        const answerDescription = new RTCSessionDescription(answer);
-        peerConnection.setRemoteDescription(answerDescription);
-        toast({ title: 'CALL CONNECTED' });
-      });
-
-      socket.on('candidate', (data) => {
-        const candidate = new RTCIceCandidate(data.candidate);
-        peerConnection
-          .addIceCandidate(candidate)
-          .then(() => {
-            console.log(
-              'Successfully added ICE Candidates by getting from socket'
-            );
-          })
-          .catch((error) =>
-            console.error('Error adding ICE candidate:', error)
-          );
-      });
-    }
-  }, [socket, currentRoom, peerConnection]);
-
-  useEffect(() => {
-    if (socket && currentRoom) {
-      socket.on('incoming:call', async (data) => {
-        toast({ title: 'Incoming call' });
-        const stream = await navigator.mediaDevices.getUserMedia(
-          mediaConstraints
-        );
-        if (!stream)
-          // ASK FOR END CALL ?
-          return toast({
-            title: 'Media not available',
-            description: 'A/V devices permission not available for call',
-          });
-
-        setLocalStream(stream);
-        setLocalSendingStream(stream);
-        const pc = new RTCPeerConnection();
-        setPeerConnection(pc);
-        const offer = data.message.data.offer;
-        const offerDescription = new RTCSessionDescription(offer);
-        await pc.setRemoteDescription(offerDescription);
-        const tracks = stream.getTracks();
-        tracks.forEach((track) => {
-          pc.addTrack(track, stream);
-        });
-        const answer = await pc.createAnswer();
-        await pc.setLocalDescription(answer);
-
-        setVideoCallVisible(true);
-        socket.emit('answer', {
-          roomId: currentRoom,
-          answer,
-        });
-      });
-      // socket.on('message')
-      // ADD MESSAGE FUNCTIONALITY
-    }
-  }, [socket, currentRoom]);
 
   return (
     <>
@@ -366,13 +341,11 @@ export default function Chats() {
               </Card>
             </div>
             <Card className="grow w-full p-4 flex flex-col">
-              {/* <SkeletonChats /> */}
+              <SkeletonChats />
               {/* TODO : Add no previous chats available or loading */}
-              <div className="grid place-items-center h-full">
-                <h2 className="text-xl font-bold">
-                  No Previous Chats Available
-                </h2>
-              </div>
+              {/* <div className="grid place-items-center h-full">
+                <h2 className="text-xl font-bold">No Previous Chats Available</h2>
+              </div> */}
             </Card>
           </main>
         </>

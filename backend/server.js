@@ -5,6 +5,10 @@ const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const server = require('http').Server(app);
 
+// TODO : CHANGE THIS FOR PRODUCTION APPROPRIATELY
+
+// REMOVING THE COMPLEXITY FOR VIDEO CONFERENCE (MESH TOPOLOGY) RESORTING TO SIMPLE P2P (2 PEOPLE CALL)
+
 const io = require('socket.io')(server, {
   cors: {
     origin: ['localhost:3000', 'http://localhost:3000'],
@@ -12,6 +16,7 @@ const io = require('socket.io')(server, {
     credentials: true,
   },
 });
+
 const decodeJWT = require('./utils/decodeJWT');
 
 app.set('sockets', io);
@@ -33,7 +38,7 @@ mongoose
 
 const roomController = require('./controllers/socketControllers/roomController');
 const User = require('./models/userModel');
-const { SocketAddress } = require('net');
+const { SocketAddress } = require('net'); //TODO : CHECK USE ??
 
 io.use(async (socket, next) => {
   console.log('Socket middleware used');
@@ -64,43 +69,59 @@ io.on('connection', (socket) => {
     const room = await roomController.createRoom(socket);
     console.log(room);
     // room.roomId is the roomId that I use
-    socket.leave(socket.id);
+    // TODO : If currently joined an other rooms need to leave them appropriately
+    // (for production level application/ currently think frontend will handle)
+
+    // NOT LEAVING THE SELF SOCKET ROOM SO THAT PVT MESSAGE CAN TAKE PLACE
+
+    // socket.leave(socket.id);
+
     socket.join(room.roomId);
     console.log(io.sockets.adapter.rooms);
     console.log(chalk.bgYellow('Created and joined the room ', room.roomId));
     io.to(room.roomId).emit('room_created', room);
   });
 
+  // socket.on('message', async (data) => {
+  //   const {message} = data;
+  //   io.to(socketId).emit('message', {
+  //     from : ''
+  //   })
+  // })
+
+  // socket.on('call', async (data) => {
+  //   const roomId = data.roomId;
+  //   console.log(socket.roomdId);
+  //   const isValidRoom = Boolean(io.sockets.adapter.rooms.get(roomId));
+  //   if (!isValidRoom)
+  //     return socket.emit('error', {
+  //       message: {
+  //         title: 'Something went wrong',
+  //         description: 'The room was not correctly found',
+  //       },
+  //     });
+
+  //   const sockets = [...io.sockets.adapter.rooms.get(roomId)];
+  //   if (sockets.length < 2)
+  //     return socket.emit('error', {
+  //       message: {
+  //         title: 'Waiting for members',
+  //         description: 'Not enough members for chat. Waiting for members.',
+  //       },
+  //     });
+  //   else if (sockets.length > 2)
+  //     return socket.emit('error', {
+  //       message: {
+  //         title: 'Too many members',
+  //         description: 'Cannot make a call, as more than 2 people in room',
+  //       },
+  //     });
+  // });
+
   socket.on('offer', async (data) => {
-    const socketId = data.socketId;
+    console.log('Got an offer');
+    const roomId = data.roomId;
     const offer = data.offer;
-    io.to(socketId).emit('offer', {
-      status: 'success',
-      message: {
-        data: {
-          socketId: socket.id,
-          offer: offer,
-        },
-      },
-    });
-  });
-
-  socket.on('answer', async (data) => {
-    const socketId = data.socketId;
-    const answer = data.answer;
-    io.to(socketId).emit('answer', {
-      status: 'success',
-      message: {
-        data: {
-          socketId: socket.id,
-          answer: answer,
-        },
-      },
-    });
-  });
-
-  socket.on('signal', async (roomId) => {
-    console.log('Received request from ', socket.id);
     const isValidRoom = Boolean(io.sockets.adapter.rooms.get(roomId));
     if (!isValidRoom)
       return socket.emit('error', {
@@ -111,29 +132,66 @@ io.on('connection', (socket) => {
       });
 
     const sockets = [...io.sockets.adapter.rooms.get(roomId)];
+    console.log(' ALL SOCKETS : ', sockets);
     if (sockets.length < 2)
       return socket.emit('error', {
         message: {
           title: 'Waiting for members',
+          code: 'E101',
           description: 'Not enough members for chat. Waiting for members.',
         },
       });
+    else if (sockets.length > 2)
+      return socket.emit('error', {
+        message: {
+          title: 'Too many members',
+          code: 'E102',
+          description: 'Cannot make a call, as more than 2 people in room',
+        },
+      });
 
-    const socketPairs = [];
+    const recepient = sockets[0] === socket.id ? sockets[1] : sockets[0];
 
-    for (i = 0; i < sockets.length - 1; i++)
-      for (j = i + 1; j < sockets.length; j++)
-        socketPairs.push([sockets[i], sockets[j]]);
+    console.log('Proceeded with transferring offer to ', recepient);
 
-    console.log('SOCKET PAIRS', socketPairs);
-    io.to(roomId).emit('mesh', {
-      message: 'Connect in pairs',
-      data: {
-        socketCount: sockets.length,
-        socketPairs,
+    socket.to(recepient).emit('incoming:call', {
+      status: 'success',
+      message: {
+        data: {
+          offer: offer,
+        },
       },
     });
   });
+
+  socket.on('answer', async (data) => {
+    const answer = data.answer;
+    const roomId = data.roomId;
+    console.log('The room id is : ', roomId);
+    const sockets = [...io.sockets.adapter.rooms.get(roomId)];
+    const caller = sockets[0] === socket.id ? sockets[1] : sockets[0];
+    console.log('My id : ', socket.id, 'Caller id : ', caller);
+    socket.to(caller).emit('answer:call', {
+      status: 'success',
+      message: {
+        data: {
+          answer: answer,
+        },
+      },
+    });
+  });
+
+  socket.on('candidate', (data) => {
+    const candidate = data.candidate;
+    const roomId = data.roomId;
+    const sockets = [...io.sockets.adapter.rooms.get(roomId)];
+    const recepient = sockets[0] === socket.id ? sockets[1] : sockets[0];
+    socket.to(recepient).emit('candidate', {
+      candidate: candidate,
+    });
+  });
+
+  socket.on('end:call', async (data) => {});
 
   socket.on('join', async (roomId) => {
     // roomId : { roomId : 'String' }
@@ -148,15 +206,15 @@ io.on('connection', (socket) => {
       console.log('Error in joining the room ', room.message);
       return;
     }
-    console.log(io.sockets.adapter.rooms);
     console.log('Joined the room ', resp.message.data.roomId);
-    socket.leave(socket.id);
+    // socket.leave(socket.id);
     socket.join(resp.message.data.roomId);
     io.to(resp.message.data.roomId).emit('joined', resp);
   });
 
   socket.on('disconnect', async () => {
     // TODO : HANDLE THE DISCONNECTION
+
     console.log(
       chalk.bgRed(
         'Disconnected :',
@@ -179,6 +237,18 @@ server.listen(port, () => {
 
 process.on('unhandledRejection', (reason, promise) => {
   console.log(reason);
-  console.log('Exiting because of unhandled exception');
+  console.log(chalk.bgRedBright('Exiting because of unhandled exception'));
   process.exit(1);
 });
+
+// ------------------------------
+
+// NOTES TO REDESIGN THE ARCH FOR 2 PEER CALLING ?
+
+/*
+CREATE ROOM
+CREATE CALL
+MESSAGE FACILITY
+END CALL
+ROOMS PAST? - HOW WILL YOU TRACK THAT KEEP IT AS WELL
+*/
