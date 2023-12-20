@@ -53,7 +53,10 @@ exports.login = async (req, res) => {
     const { data: userInfo } = await axios.get(
       `https://www.googleapis.com/oauth2/v2/userinfo?access_token=${accessToken}`
     );
-    console.log(userInfo);
+    if (!userInfo.picture)
+      (userInfo.picture =
+        'https://api.dicebear.com/7.x/notionists-neutral/svg?seed=userInfo.email'),
+        console.log(userInfo);
     let user;
     user = await User.findOne({ email: userInfo.email });
     if (user) {
@@ -115,7 +118,15 @@ exports.isLoggedIn = async (req, res) => {
         },
       });
     } else {
-      const user = await User.findById(authToken?.decoded?.id);
+      let user;
+      if (authToken.decoded.id)
+        user = await User.findById(authToken.decoded.id);
+      if (!user) {
+        return res.status(401).json({
+          status: 'fail',
+          data: { message: 'Please login' },
+        });
+      }
       res.status(200).json({
         status: 'success',
         data: {

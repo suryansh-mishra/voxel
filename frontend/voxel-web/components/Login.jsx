@@ -14,9 +14,7 @@ import Link from 'next/link';
 import useStore from '@/store/store';
 
 export default function Login() {
-  const isLoggedIn = useStore((state) => state.isLoggedIn);
   const setIsLoggedIn = useStore((state) => state.setIsLoggedIn);
-  const user = useStore((state) => state.user);
   const setUser = useStore((state) => state.setUser);
 
   const googleLogin = useGoogleLogin({

@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 
+import { VscSend } from 'react-icons/vsc';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/components/ui/use-toast';
@@ -17,16 +18,14 @@ import useStore from '@/store/store';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
 
-function SkeletonChats() {
+function MessageBox({ variant, content }) {
   return (
-    <div>
-      <div className="flex items-center space-x-4">
-        <Skeleton className="h-12 w-12 rounded-full" />
-        <div className="space-y-2">
-          <Skeleton className="h-4 w-[250px]" />
-          <Skeleton className="h-4 w-[200px]" />
-        </div>
-      </div>
+    <div
+      className={`${
+        variant === 'S' ? 'bg-blue-600 self-end' : 'bg-zinc-700'
+      } text-white right-0 max-w-xs md:max-w-md py-2 px-3 rounded-lg`}
+    >
+      <p>{content}</p>
     </div>
   );
 }
@@ -39,6 +38,8 @@ export default function Chats() {
   const [joinRoomString, setJoinRoomString] = useState('');
   const joinInputRef = useRef(null);
 
+  const messageInputRef = useRef(null);
+
   const peerConnection = useStore((state) => state.peerConnection);
   const currentRoom = useStore((state) => state.currentRoom);
   const inCall = useStore((state) => state.inCall);
@@ -46,20 +47,18 @@ export default function Chats() {
   const socket = useStore((state) => state.socket);
   const localStream = useStore((state) => state.localStream);
   const createdRoomString = useStore((state) => state.createdRoomString);
-  const videoCallVisible = useStore((state) => state.videoCallVisible);
 
+  const messages = useStore((state) => state.messages);
+
+  const setInCall = useStore((state) => state.setInCall);
   const setRemoteStream = useStore((state) => state.setRemoteStream);
   const setCreatedRoomString = useStore((state) => state.setCreatedRoomString);
   const setPeerConnection = useStore((state) => state.setPeerConnection);
   const setVideoCallVisible = useStore((state) => state.setVideoCallVisible);
-  const setLocalSendingStream = useStore(
-    (state) => state.setLocalSendingStream
-  );
-
   const setLocalStream = useStore((state) => state.setLocalStream);
   const setCurrentRoom = useStore((state) => state.setCurrentRoom);
 
-  // TODO : IMPLEMENT ERROR FLOW B/W BACKEND AND FRONTEND FOR ROOMS ETC
+  const setMessages = useStore((state) => state.setMessages);
 
   const copyToClipboard = async (e) => {
     if (e) e.preventDefault();
@@ -80,25 +79,15 @@ export default function Chats() {
   };
 
   const servers = {
-    iceServers: [
-      {
-        urls: [
-          'stun:stun1.l.google.com:19302',
-          // 'stun:stun.services.mozilla.com',
-        ],
-      },
-    ],
-    // iceCandidatePoolSize: 2,
+    iceServers: [{ urls: ['stun:stun1.l.google.com:19302'] }],
   };
 
   const mediaConstraints = { video: true, audio: true };
 
-  // CREATE OFFER IS USED FOR CALL
   const createOffer = async () => {
     const pc = new RTCPeerConnection(servers);
     const stream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
     setLocalStream(stream);
-    setLocalSendingStream(stream);
     if (!stream)
       return toast({
         title: 'Media not available',
@@ -109,10 +98,9 @@ export default function Chats() {
     tracks.forEach((track) => {
       pc.addTrack(track, stream);
     });
-
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
-    socket.emit('offer', { roomId: currentRoom, offer });
+    socket.emit('call:offer', { roomId: currentRoom, offer });
     setVideoCallVisible(true);
   };
 
@@ -120,7 +108,6 @@ export default function Chats() {
     const pc = new RTCPeerConnection();
     const stream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
     setLocalStream(stream);
-    setLocalSendingStream(stream);
     const tracks = stream.getTracks();
     tracks.forEach((track) => {
       pc.addTrack(track, stream);
@@ -132,17 +119,24 @@ export default function Chats() {
   };
 
   const endCall = () => {
-    const tracks = localStream?.getTracks();
-    tracks?.forEach(async (track) => {
-      track.stop();
-    });
-    setVideoCallVisible(false);
-    setLocalSendingStream(null);
-    setPeerConnection(null);
+    if (inCall) {
+      peerConnection.close();
+      //       peerConnection.removeEventListener('icecandidate', handleIceCandidate);
+      // peerConnection.removeEventListener('datachannel', handleDataChannel);
+      const tracks = localStream?.getTracks();
+      tracks?.forEach(async (track) => {
+        track.stop();
+      });
+      setVideoCallVisible(false);
+      setPeerConnection(null);
+      setRemoteStream(null);
+      setInCall(false);
+    }
   };
 
   const endChat = () => {
     if (inCall) endCall();
+    socket.emit('room:leave', { roomId: currentRoom });
     setCurrentRoom('');
     setCreatedRoomString('');
   };
@@ -150,22 +144,30 @@ export default function Chats() {
   const showVideoCall = (e) => setVideoCallVisible(true);
 
   const createRoom = () => {
-    if (socket) socket.emit('create');
+    if (socket) socket.emit('room:create');
     else toast({ title: 'Error connecting to servers' });
   };
 
   const joinVoxelChat = () => {
     if (socket && joinRoomString)
-      socket.emit('join', { roomId: joinRoomString });
+      socket.emit('room:join', { roomId: joinRoomString });
   };
 
   const joinRoomInputHandler = (e) => {
     if (e) setJoinRoomString(e.target.value);
   };
 
+  const sendMessage = () => {
+    if (!socket) toast({ title: 'Server connection not established' });
+    if (!messageInputRef.current.value) return;
+    const message = messageInputRef.current.value;
+    socket.emit('message', { message, roomId: currentRoom });
+    setMessages({ message, variant: 'S' });
+    messageInputRef.current.value = '';
+  };
+
   const clearPreviousRoom = () => {
     setCurrentRoom('');
-    setLocalSendingStream(null);
     setCreatedRoomString('');
     setJoinRoomString('');
   };
@@ -176,7 +178,7 @@ export default function Chats() {
 
   useEffect(() => {
     if (socket) {
-      socket.on('room_created', async (data) => {
+      socket.on('room:created', async (data) => {
         clearPreviousRoom();
         setCurrentRoom(data.roomId);
         setCreatedRoomString(data.roomId);
@@ -186,16 +188,18 @@ export default function Chats() {
         });
       });
 
-      socket.on('joined', (data) => {
+      socket.on('room:joined', (data) => {
         setCurrentRoom(data.message.data.roomId);
         toast({
           title: data.message.title,
         });
       });
 
+      socket.on('call:end', () => {
+        if (inCall) endCall();
+      });
+
       socket.on('error', (data) => {
-        console.log('error', data);
-        alert(`ERROR :  ${data.message.title}`);
         toast({
           title: data.message.title,
           description: data.message.description,
@@ -207,37 +211,35 @@ export default function Chats() {
 
   useEffect(() => {
     if (socket && currentRoom && peerConnection) {
-      // if (!peerConnection?.ontrack)
-      peerConnection.ontrack = (event) => {
-        console.log('WE GOT THE TRAX BABYYYYYY!!!!');
-        toast({ title: 'GOT THE TRAX' });
-        if (event) {
-          const newStream = new MediaStream();
-          event.streams[0].getTracks().forEach((track) => {
-            newStream.addTrack(track);
-          });
-          setRemoteStream(newStream);
-        }
-      };
+      if (!peerConnection?.ontrack)
+        peerConnection.ontrack = (event) => {
+          if (event) {
+            const newStream = new MediaStream();
+            event.streams[0].getTracks().forEach((track) => {
+              newStream.addTrack(track);
+            });
+            setRemoteStream(newStream);
+          }
+        };
 
       peerConnection.onicecandidate = (event) => {
         if (event.candidate) {
-          console.log('WE PROCESSED ICE : ', event);
-          socket.emit('candidate', {
+          socket.emit('call:candidate', {
             roomId: currentRoom,
             candidate: event.candidate,
           });
         }
       };
 
-      socket.on('answer:call', async (data) => {
+      socket.on('call:answered', async (data) => {
         const answer = data.message.data.answer;
         const answerDescription = new RTCSessionDescription(answer);
         peerConnection.setRemoteDescription(answerDescription);
-        toast({ title: 'CALL CONNECTED' });
+        toast({ title: 'Call connected' });
+        setInCall(true);
       });
 
-      socket.on('candidate', (data) => {
+      socket.on('call:candidate', (data) => {
         const candidate = new RTCIceCandidate(data.candidate);
         peerConnection
           .addIceCandidate(candidate)
@@ -246,29 +248,31 @@ export default function Chats() {
               'Successfully added ICE Candidates by getting from socket'
             );
           })
-          .catch((error) =>
-            console.error('Error adding ICE candidate:', error)
-          );
+          .catch((error) => {
+            toast({ title: 'Issues in call establishment' });
+            console.error('Error adding ICE candidate:', error);
+          });
       });
     }
   }, [socket, currentRoom, peerConnection]);
-
+  useEffect(() => {
+    console.log(messages);
+  }, [messages]);
   useEffect(() => {
     if (socket && currentRoom) {
-      socket.on('incoming:call', async (data) => {
-        toast({ title: 'Incoming call' });
+      socket.on('call:incoming', async (data) => {
+        console.log('Incoming call');
         const stream = await navigator.mediaDevices.getUserMedia(
           mediaConstraints
         );
         if (!stream)
-          // ASK FOR END CALL ?
+          // socket.emit('call:end', )
           return toast({
             title: 'Media not available',
             description: 'A/V devices permission not available for call',
           });
 
         setLocalStream(stream);
-        setLocalSendingStream(stream);
         const pc = new RTCPeerConnection();
         setPeerConnection(pc);
         const offer = data.message.data.offer;
@@ -282,23 +286,25 @@ export default function Chats() {
         await pc.setLocalDescription(answer);
 
         setVideoCallVisible(true);
-        socket.emit('answer', {
+        socket.emit('call:answer', {
           roomId: currentRoom,
           answer,
         });
+        setInCall(true);
       });
-      // socket.on('message')
-      // ADD MESSAGE FUNCTIONALITY
+      socket.on('message', (data) => {
+        setMessages({ message: data, variant: 'R' });
+      });
     }
   }, [socket, currentRoom]);
 
   return (
     <>
       {isLoggedIn && (
-        <>
+        <div className="flex flex-col h-dvh">
           <Nav />
-          <main className="flex flex-col md:flex-row justify-center md:mx-12 p-2 md:p-4 gap-4">
-            <div className="flex md:min-w-fit flex-col gap-2 col-span-1">
+          <main className="flex flex-col grow md:flex-row justify-center md:mx-12 p-2 md:p-4 gap-4">
+            <div className="flex md:w-1/4 flex-col gap-2 col-span-1">
               <Card>
                 <CardHeader className="pb-4">
                   <CardTitle>Have a Chat</CardTitle>
@@ -365,17 +371,46 @@ export default function Chats() {
                 </CardContent>
               </Card>
             </div>
-            <Card className="grow w-full p-4 flex flex-col">
-              {/* <SkeletonChats /> */}
-              {/* TODO : Add no previous chats available or loading */}
-              <div className="grid place-items-center h-full">
-                <h2 className="text-xl font-bold">
-                  No Previous Chats Available
-                </h2>
+            <Card className="p-4 grow h-56 md:w-3/4 md:items-stretch relative md:h-full flex flex-col ">
+              <div className="flex absolute top-0 z-10 left-0 w-full bg-transparent backdrop-blur-md py-3 justify-center mb-2 rounded-t-lg">
+                <h2 className="text-lg font-semibold">Live Chat</h2>
               </div>
+              {currentRoom ? (
+                <div className="flex flex-col-reverse grow py-2 gap-1 relative z-0 text-sm mt-8 overflow-y-scroll overflow-x-hidden">
+                  {messages.map((message, index) => {
+                    return (
+                      <MessageBox
+                        variant={message.variant}
+                        content={message.message}
+                        key={index}
+                      />
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="grid h-full w-full text-2xl text-zinc-500 font-bold place-items-center">
+                  Create A Chat First!
+                </div>
+              )}
+              {currentRoom && (
+                <div className="flex w-full mt-2">
+                  <Input
+                    placeholder="Send a message!"
+                    ref={messageInputRef}
+                  ></Input>
+                  <Button
+                    variant="custom"
+                    type="icon"
+                    className="text-md mx-1 rounded-md"
+                    onClick={sendMessage}
+                  >
+                    <VscSend />
+                  </Button>
+                </div>
+              )}
             </Card>
           </main>
-        </>
+        </div>
       )}
     </>
   );

@@ -42,6 +42,7 @@ export default function HomePage() {
           }
         })
         .catch((err) => {
+          console.log('WE ARE AT ERROR OF USER NOT FOUND');
           toast({
             title: 'No session found',
             description: 'Please sign in to voxel',
