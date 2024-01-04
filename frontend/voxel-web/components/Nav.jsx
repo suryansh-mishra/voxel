@@ -56,6 +56,7 @@ export default function Nav() {
       description: "You've been successfully logged out",
     });
     setUser({});
+    // TODO : LEAVE THE CURRENT ROOM, LEAVE THE SOCKETS, LEAVE EVERYTHING AND LOG THE USER COMPLETELY OUT!
     setIsLoggedIn(false);
   };
 

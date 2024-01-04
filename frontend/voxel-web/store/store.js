@@ -6,6 +6,7 @@ const useStore = create((set) => ({
   messages: [],
   socket: null,
   user: {},
+  whiteboardVisible: false,
 
   isAudioOn: true,
   isVideoOn: true,
@@ -18,9 +19,13 @@ const useStore = create((set) => ({
   remoteStream: null, // Peer A/V stream
   createdRoomString: '', // Room string generated so that it is preserved b/w renders from one page to another
 
+  shapes: [],
+  setShapes: (val) => set((state) => ({ shapes: [...state.shapes, val] })),
+  emptyShapes: () => set((state) => ({ shapes: [] })),
+
   setIsAudioOn: (val) => set(() => ({ isAudioOn: val })),
   setIsVideoOn: (val) => set(() => ({ isVideoOn: val })),
-
+  setWhiteboardVisible: (val) => set(() => ({ whiteboardVisible: val })),
   setPeerConnection: (val) => set(() => ({ peerConnection: val })),
   setCurrentRoom: (val) => set(() => ({ currentRoom: val })),
   setCreatedRoomString: (val) => set(() => ({ createdRoomString: val })),

@@ -34,6 +34,7 @@ mongoose
   .catch((err) => {
     console.log(chalk.red('Database Connection Error'));
     if (process.env.NODE_ENV === 'dev') console.log(err);
+    else process.exit(0);
   });
 
 const roomController = require('./controllers/socketControllers/roomController');
@@ -94,9 +95,18 @@ io.on('connection', (socket) => {
 
   socket.on('message', async (data) => {
     const roomId = data.roomId;
-    sockets = [...io.sockets.adapter.rooms.get(roomId)];
+    const sockets = [...io.sockets.adapter.rooms.get(roomId)];
     sockets.forEach((socketId) => {
       if (socketId !== socket.id) io.to(socketId).emit('message', data.message);
+    });
+  });
+
+  socket.on('whiteboard:shape', async (data) => {
+    const roomId = data.roomId;
+    const sockets = [...io.sockets.adapter.rooms.get(roomId)];
+    sockets.forEach((socketId) => {
+      if (socketId !== socket.id)
+        io.to(socketId).emit('whiteboard:shape', data.shape);
     });
   });
 

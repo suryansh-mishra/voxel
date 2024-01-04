@@ -12,7 +12,6 @@ import {
 
 import { VscSend } from 'react-icons/vsc';
 import { Input } from '@/components/ui/input';
-import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/components/ui/use-toast';
 import useStore from '@/store/store';
 import { useRouter } from 'next/navigation';
@@ -57,6 +56,7 @@ export default function Chats() {
   const setVideoCallVisible = useStore((state) => state.setVideoCallVisible);
   const setLocalStream = useStore((state) => state.setLocalStream);
   const setCurrentRoom = useStore((state) => state.setCurrentRoom);
+  const setShapes = useStore((state) => state.setShapes);
 
   const setMessages = useStore((state) => state.setMessages);
 
@@ -199,6 +199,10 @@ export default function Chats() {
         if (inCall) endCall();
       });
 
+      socket.on('whiteboard:shape', (data) => {
+        setShapes(data);
+      });
+
       socket.on('error', (data) => {
         toast({
           title: data.message.title,
@@ -255,9 +259,7 @@ export default function Chats() {
       });
     }
   }, [socket, currentRoom, peerConnection]);
-  useEffect(() => {
-    console.log(messages);
-  }, [messages]);
+
   useEffect(() => {
     if (socket && currentRoom) {
       socket.on('call:incoming', async (data) => {

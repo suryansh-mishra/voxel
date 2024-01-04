@@ -51,7 +51,7 @@ export default function ChatScreen() {
   return (
     <>
       {videoCallVisible && (
-        <div className="flex flex-col z-50 items-center fixed justify-center h-[95dvh] w-full top-5 left-0 backdrop-blur-xl rounded-xl">
+        <div className="flex flex-col z-40 items-center fixed justify-center h-[95dvh] w-full top-5 left-0 backdrop-blur-xl rounded-xl">
           <header className="flex px-4 w-full items-center justify-between">
             <h1 className="py-2 font-semibold">Voxel Call</h1>
 
