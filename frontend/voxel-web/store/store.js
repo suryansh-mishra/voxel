@@ -6,7 +6,7 @@ const useStore = create((set) => ({
   messages: [],
   socket: null,
   user: {},
-  whiteboardVisible: false,
+  whiteboardVisible: true,
 
   isAudioOn: true,
   isVideoOn: true,

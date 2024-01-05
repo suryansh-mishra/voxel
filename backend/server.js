@@ -90,11 +90,27 @@ io.on('connection', (socket) => {
 
   socket.on('room:leave', async (data) => {
     const roomId = data.roomId;
+    const isValidRoom = Boolean(io.sockets.adapter.rooms.get(roomId));
+    if (!isValidRoom)
+      return socket.emit('error', {
+        message: {
+          title: 'Something went wrong',
+          description: 'The room was not correctly found',
+        },
+      });
     if (roomId) socket.leave(roomId);
   });
 
   socket.on('message', async (data) => {
     const roomId = data.roomId;
+    const isValidRoom = Boolean(io.sockets.adapter.rooms.get(roomId));
+    if (!isValidRoom)
+      return socket.emit('error', {
+        message: {
+          title: 'Something went wrong',
+          description: 'The room was not correctly found',
+        },
+      });
     const sockets = [...io.sockets.adapter.rooms.get(roomId)];
     sockets.forEach((socketId) => {
       if (socketId !== socket.id) io.to(socketId).emit('message', data.message);
@@ -103,6 +119,14 @@ io.on('connection', (socket) => {
 
   socket.on('whiteboard:shape', async (data) => {
     const roomId = data.roomId;
+    const isValidRoom = Boolean(io.sockets.adapter.rooms.get(roomId));
+    if (!isValidRoom)
+      return socket.emit('error', {
+        message: {
+          title: 'Something went wrong',
+          description: 'The room was not correctly found',
+        },
+      });
     const sockets = [...io.sockets.adapter.rooms.get(roomId)];
     sockets.forEach((socketId) => {
       if (socketId !== socket.id)

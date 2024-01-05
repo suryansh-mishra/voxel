@@ -14,7 +14,12 @@ export default function FloatingChatControl() {
     currentRoom &&
     !whiteboardVisible && (
       <div className="bg-accent-light-bright text-white p-1 fixed overflow-hidden bottom-0 left-0 ml-10 mb-24 z-[90] rounded-2xl">
-        <Button variant="custom" size="icon" onClick={toggleWhiteboard}>
+        <Button
+          variant="custom"
+          size="icon"
+          onClick={toggleWhiteboard}
+          className={'hover:rounded-2xl'}
+        >
           <PiPresentationBold className="text-lg" />
         </Button>
       </div>

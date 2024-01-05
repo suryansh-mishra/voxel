@@ -5,11 +5,11 @@ import useStore from '../store/store';
 
 import rough from 'roughjs';
 import { Button } from './ui/button';
-import { FaCaretDown, FaEraser, FaPen } from 'react-icons/fa';
-import { MdOutlineRectangle } from 'react-icons/md';
+import { FaBan, FaCaretDown, FaPen } from 'react-icons/fa';
+import { MdOutlineRectangle, MdOutlineUndo } from 'react-icons/md';
 import { FaRegCircle } from 'react-icons/fa';
 import { PiLineSegmentFill } from 'react-icons/pi';
-import { GrClear } from 'react-icons/gr';
+import { IoSave } from 'react-icons/io5';
 
 const TOOL_TYPES = {
   PEN: 'PEN',
@@ -20,35 +20,44 @@ const TOOL_TYPES = {
 };
 
 export default function Whiteboard() {
-  const whiteboardVisible = useStore((state) => state.whiteboardVisible);
-  const setWhiteboardVisible = useStore((state) => state.setWhiteboardVisible);
-  const currentRoom = useStore((state) => state.currentRoom);
+  const [
+    whiteboardVisible,
+    setWhiteboardVisible,
+    currentRoom,
+    socket,
+    shapes,
+    setShapes,
+    emptyShapes,
+  ] = useStore((state) => [
+    state.whiteboardVisible,
+    state.setWhiteboardVisible,
+    state.currentRoom,
+    state.socket,
+    state.shapes,
+    state.setShapes,
+    state.emptyShapes,
+  ]);
 
-  const socket = useStore((state) => state.socket);
-  const shapes = useStore((state) => state.shapes);
-  const setShapes = useStore((state) => state.setShapes);
-  const emptyShapes = useStore((state) => state.emptyShapes);
-
-  const color = useRef('#000');
-  const [boundary, setBoundary] = useState({ x: 0, y: 0 });
   const strokeWidthRC = 2;
-  // const [size, setSize] = useState(1); TODO : ADD STROKE WIDTH SETTINGS ?
-  const [isPickerVisible, setIsPickerVisible] = useState(false);
-
-  const colorInputRef = useRef(null);
-  const canvasContainerRef = useRef(null);
-  const canvasRef = useRef(null);
 
   const [roughCanvas, setRoughCanvas] = useState();
+  const [boundary, setBoundary] = useState({ x: 0, y: 0 });
+  const [isPickerVisible, setIsPickerVisible] = useState(false);
 
-  const shapesRef = useRef(shapes);
+  // const [size, setSize] = useState(1); TODO : ADD STROKE WIDTH SETTINGS ?
 
   // Drawing states ---- Using escape hatch from react for rough JS
+  const colorInputRef = useRef(null);
+  const canvasContainerRef = useRef(null);
+  const shapesRef = useRef(shapes);
+  const canvasRef = useRef(null);
+  const color = useRef('#000');
   const isDrawing = useRef(false);
   const tool = useRef(TOOL_TYPES.PEN);
-  const ctx = canvasRef.current?.getContext('2d');
   const path = useRef('');
   const mouseDownPosition = useRef({ x: 0, y: 0 });
+
+  const ctx = canvasRef.current?.getContext('2d');
 
   const handleCloseWhiteboard = () => setWhiteboardVisible(false);
   const handleColorPickerClick = () => {
@@ -58,29 +67,48 @@ export default function Whiteboard() {
   const handleToolChange = (e) =>
     (tool.current = e.target.closest('button').value);
 
+  const scaleUpX = (val) => val * canvasRef.current.width;
+  const scaleUpY = (val) => val * canvasRef.current.height;
+
+  const scaleDownX = (val) => val / canvasRef.current.width;
+  const scaleDownY = (val) => val / canvasRef.current.height;
+
   const usePickOnChange = (e) => {
     setIsPickerVisible(false);
     color.current = colorInputRef.current.value;
   };
 
-  const clearCanvas = () => {
+  const clearCanvas = () =>
     ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-  };
 
   const clearShapes = () => {
     emptyShapes();
     shapesRef.current = [];
-    // emit clear shapes event
+    socket?.emit('whiteboard:clear');
   };
 
   const drawShapes = () => {
     clearCanvas();
+    ctx.strokeStyle = color.current;
+
     const shapesObject = shapesRef.current;
     if (shapesObject.length > 0 && roughCanvas) {
       shapesObject.forEach((el) => {
         switch (el.type) {
           case TOOL_TYPES.PEN:
-            roughCanvas.path(el.path, {
+            let path = '',
+              isX = true;
+            const list = el.path.split(' ');
+            list.forEach((token) => {
+              if (token === 'L' || token === 'M') path += token;
+              else {
+                path += isX ? scaleUpX(token) : scaleUpY(token);
+                isX = !isX;
+              }
+              path += ' ';
+            });
+
+            roughCanvas.path(path, {
               roughness: 0.1,
               simplification: 1,
               strokeWidth: strokeWidthRC,
@@ -88,32 +116,44 @@ export default function Whiteboard() {
             });
             break;
           case TOOL_TYPES.RECT:
-            roughCanvas.rectangle(el.rect.x, el.rect.y, el.rect.w, el.rect.h, {
-              roughness: 0.4,
-              stroke: el.color,
-              strokeWidth: strokeWidthRC,
-            });
+            roughCanvas.rectangle(
+              scaleUpX(el.rect.x),
+              scaleUpY(el.rect.y),
+              scaleUpX(el.rect.w),
+              scaleUpY(el.rect.h),
+              { roughness: 0.4, stroke: el.color, strokeWidth: strokeWidthRC }
+            );
             break;
 
           case TOOL_TYPES.CIRCLE:
-            roughCanvas.circle(el.circle.x, el.circle.y, 2 * el.circle.r, {
-              roughness: 0.35,
-              stroke: el.color,
-              strokeWidth: strokeWidthRC,
-            });
+            roughCanvas.circle(
+              scaleUpX(el.circle.x),
+              scaleUpY(el.circle.y),
+              scaleUpX(el.circle.d),
+              {
+                roughness: 0.35,
+                stroke: el.color,
+                strokeWidth: strokeWidthRC,
+              }
+            );
             break;
           case TOOL_TYPES.LINE:
-            roughCanvas.line(el.line.x1, el.line.y1, el.line.x2, el.line.y2, {
-              roughness: 0.45,
-              stroke: el.color,
-              strokeWidth: strokeWidthRC,
-            });
+            roughCanvas.line(
+              scaleUpX(el.line.x1),
+              scaleUpY(el.line.y1),
+              scaleUpX(el.line.x2),
+              scaleUpY(el.line.y2),
+              {
+                roughness: 0.45,
+                stroke: el.color,
+                strokeWidth: strokeWidthRC,
+              }
+            );
             break;
         }
       });
     }
   };
-  // RETRIEVE SHAPES FROM A CENTRAL LOCATION AND FEED THEM TO DRAW
 
   const handleMouseDown = (e) => {
     isDrawing.current = true;
@@ -122,7 +162,9 @@ export default function Whiteboard() {
         ctx.beginPath();
         ctx.strokeStyle = color.current;
         ctx.moveTo(e.clientX - boundary.x, e.clientY - boundary.y);
-        path.current = `M ${e.clientX - boundary.x} ${e.clientY - boundary.y} `;
+        path.current = `M ${scaleDownX(e.clientX - boundary.x)} ${scaleDownY(
+          e.clientY - boundary.y
+        )}`;
         break;
       case TOOL_TYPES.RECT:
       case TOOL_TYPES.CIRCLE:
@@ -138,9 +180,9 @@ export default function Whiteboard() {
     switch (tool.current) {
       case TOOL_TYPES.PEN:
         ctx.lineTo(e.clientX - boundary.x, e.clientY - boundary.y);
-        path.current += ` L ${e.clientX - boundary.x} ${
+        path.current += ` L ${scaleDownX(e.clientX - boundary.x)} ${scaleDownY(
           e.clientY - boundary.y
-        }`;
+        )}`;
         ctx.stroke();
         break;
       case TOOL_TYPES.RECT:
@@ -157,10 +199,7 @@ export default function Whiteboard() {
         drawShapes();
         const w = e.clientX - boundary.x - mouseDownPosition.current.x;
         const h = e.clientY - boundary.y - mouseDownPosition.current.y;
-        console.log('CIRCLE MOVE: ', w, h);
         const r = Math.pow(Math.pow(w, 2) + Math.pow(h, 2), 0.5);
-        console.log(r);
-        console.log(w * w + h * h);
         roughCanvas?.circle(
           mouseDownPosition.current.x,
           mouseDownPosition.current.y,
@@ -201,10 +240,10 @@ export default function Whiteboard() {
         const rectangleObject = {
           type: TOOL_TYPES.RECT,
           rect: {
-            x: mouseDownPosition.current.x,
-            y: mouseDownPosition.current.y,
-            w: e.clientX - boundary.x - mouseDownPosition.current.x,
-            h: e.clientY - boundary.y - mouseDownPosition.current.y,
+            x: scaleDownX(mouseDownPosition.current.x),
+            y: scaleDownY(mouseDownPosition.current.y),
+            w: scaleDownX(e.clientX - boundary.x - mouseDownPosition.current.x),
+            h: scaleDownY(e.clientY - boundary.y - mouseDownPosition.current.y),
           },
         };
         shape = { ...shape, ...rectangleObject };
@@ -213,25 +252,26 @@ export default function Whiteboard() {
         const w = e.clientX - boundary.x - mouseDownPosition.current.x;
         const h = e.clientY - boundary.y - mouseDownPosition.current.y;
         const r = Math.pow(Math.pow(w, 2) + Math.pow(h, 2), 0.5);
+
         const circleObject = {
           type: TOOL_TYPES.CIRCLE,
           circle: {
-            x: mouseDownPosition.current.x,
-            y: mouseDownPosition.current.y,
-            r,
+            x: scaleDownX(mouseDownPosition.current.x),
+            y: scaleDownY(mouseDownPosition.current.y),
+            d: scaleDownX(2 * r),
           },
         };
         shape = { ...shape, ...circleObject };
         break;
 
       case TOOL_TYPES.LINE:
-        const x2 = e.clientX - boundary.x;
-        const y2 = e.clientY - boundary.y;
+        const x2 = scaleDownX(e.clientX - boundary.x);
+        const y2 = scaleDownY(e.clientY - boundary.y);
         const lineObject = {
           type: TOOL_TYPES.LINE,
           line: {
-            x1: mouseDownPosition.current.x,
-            y1: mouseDownPosition.current.y,
+            x1: scaleDownX(mouseDownPosition.current.x),
+            y1: scaleDownY(mouseDownPosition.current.y),
             x2,
             y2,
           },
@@ -240,7 +280,7 @@ export default function Whiteboard() {
 
         break;
     }
-    socket.emit('whiteboard:shape', { roomId: currentRoom, shape });
+    socket?.emit('whiteboard:shape', { roomId: currentRoom, shape });
     setShapes(shape);
   };
 
@@ -252,8 +292,7 @@ export default function Whiteboard() {
   }, [shapes, whiteboardVisible, roughCanvas, ctx]);
 
   useEffect(() => {
-    if (ctx && color.current) {
-      ctx.strokeStyle = color.current;
+    if (ctx) {
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
       ctx.lineWidth = 1;
@@ -261,20 +300,29 @@ export default function Whiteboard() {
       ctx.shadowOffsetX = 0;
       ctx.shadowOffsetY = 0;
       ctx.shadowBlur = 1;
-      ctx.shadowColor = color.current;
     }
-  }, [ctx, color.current]);
+  }, [ctx]);
 
+  useEffect(() => {
+    if (ctx && color.current) {
+      {
+        ctx.shadowColor = color.current;
+        ctx.strokeStyle = color.current;
+      }
+    }
+  }, [color.current]);
   useEffect(() => {
     if (roughCanvas && ctx) {
       canvasRef.current?.addEventListener('mousedown', handleMouseDown);
       canvasRef.current?.addEventListener('mousemove', handleMouseMove);
       canvasRef.current?.addEventListener('mouseup', handleMouseUp);
+      canvasRef.current?.addEventListener('mouseout', handleMouseUp);
 
       return () => {
         canvasRef.current?.removeEventListener('mousedown', handleMouseDown);
         canvasRef.current?.removeEventListener('mousemove', handleMouseMove);
         canvasRef.current?.removeEventListener('mouseup', handleMouseUp);
+        canvasRef.current?.removeEventListener('mouseout', handleMouseUp);
       };
     }
   }, [canvasRef, roughCanvas, ctx]);
@@ -282,16 +330,13 @@ export default function Whiteboard() {
   useEffect(() => {
     if (whiteboardVisible && canvasRef.current) {
       isDrawing.current = false;
-      const rc = rough.canvas(canvasRef.current);
-      setRoughCanvas(rc);
-
       const handleResize = (e) => {
         canvasRef.current.height = canvasRef.current.offsetHeight;
         canvasRef.current.width = canvasRef.current.offsetWidth;
-
+        const rc = rough.canvas(canvasRef.current);
+        setRoughCanvas(rc);
         const boundingClient =
           canvasContainerRef.current.getBoundingClientRect();
-
         setBoundary({ x: boundingClient.x, y: boundingClient.y });
       };
 
@@ -305,8 +350,8 @@ export default function Whiteboard() {
   }, [canvasRef, canvasContainerRef, whiteboardVisible]);
 
   return (
-    whiteboardVisible &&
-    currentRoom && (
+    whiteboardVisible && (
+      // currentRoom && (
       <div className="fixed flex z-50 justify-center items-center top-0 left-0 h-full w-full backdrop-brightness-75 backdrop-blur-sm">
         <div className="w-28 shrink-0 flex flex-col gap-2 justify-center items-center h-full">
           <Button
@@ -326,7 +371,7 @@ export default function Whiteboard() {
           <div className=" bg-white/60 w-4 h-1 rounded-full"></div>
           <div className="flex flex-col backdrop-blur-2xl bg-white/80 text-black h-fit w-10 rounded-full">
             <Button
-              variant="custom"
+              variant="whiteboard"
               size="icon"
               value={TOOL_TYPES.PEN}
               onClick={handleToolChange}
@@ -334,7 +379,7 @@ export default function Whiteboard() {
               <FaPen />
             </Button>
             <Button
-              variant="custom"
+              variant="whiteboard"
               size="icon"
               value={TOOL_TYPES.LINE}
               onClick={handleToolChange}
@@ -343,7 +388,7 @@ export default function Whiteboard() {
             </Button>
 
             <Button
-              variant="custom"
+              variant="whiteboard"
               size="icon"
               value={TOOL_TYPES.RECT}
               onClick={handleToolChange}
@@ -351,7 +396,7 @@ export default function Whiteboard() {
               <MdOutlineRectangle />
             </Button>
             <Button
-              variant="custom"
+              variant="whiteboard"
               size="icon"
               value={TOOL_TYPES.CIRCLE}
               onClick={handleToolChange}
@@ -359,7 +404,7 @@ export default function Whiteboard() {
               <FaRegCircle />
             </Button>
             {/* <Button
-              variant="custom"
+              variant="whiteboard"
               size="icon"
               value={TOOL_TYPES.ERASER}
               onClick={handleToolChange}
@@ -368,30 +413,56 @@ export default function Whiteboard() {
             </Button> */}
           </div>
           <Button
-            variant="custom"
+            variant="whiteboard"
             size="icon"
-            className="mt-4 bg-white/80 text-xl"
-            onClick={clearShapes}
+            className="mt-2 bg-white/80 hover:bg-white/90 rotate-45"
+            disabled={shapes.length === 0}
           >
-            <GrClear />
+            <MdOutlineUndo />
+          </Button>
+          <Button
+            variant="whiteboard"
+            size="icon"
+            className="mt-2 bg-white/80 hover:bg-white/90"
+            onClick={clearShapes}
+            disabled={shapes.length === 0}
+          >
+            <FaBan />
+          </Button>
+          <Button
+            variant="whiteboard"
+            size="icon"
+            className="mt-2 bg-white/80 hover:bg-white/90"
+            disabled={shapes.length === 0}
+            onClick={() => {
+              const image = new Image();
+              image.src = canvasRef.current.toDataURL('image/jpeg', 1.0);
+              const link = document.createElement('a');
+              link.download = 'image.png';
+              link.href = image.src;
+              link.click();
+            }}
+          >
+            <IoSave />
           </Button>
         </div>
-        <div
-          className="grow bg-blue-300 flex justify-center"
-          ref={canvasContainerRef}
-        >
+
+        {/* CANVAS AREA */}
+
+        <div className="grow flex justify-center" ref={canvasContainerRef}>
           <canvas
-            className="aspect-video cursor-crosshair w-full bg-green-50 bg-[url(/canvas.png)]"
+            className="aspect-video cursor-crosshair w-full bg-[url(/canvas.png)]"
             ref={canvasRef}
             width={1920}
             height={1080}
           ></canvas>
         </div>
+
         <div className="w-28 shrink-0 pt-6 pl-6 h-full">
           <Button
             variant="custom"
             size="icon"
-            className="text-lg bg-green-800"
+            className="text-lg bg-green-800 text-white"
             onClick={handleCloseWhiteboard}
           >
             <FaCaretDown />

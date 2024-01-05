@@ -317,6 +317,7 @@ export default function Chats() {
                 <CardContent>
                   <Input
                     className={`my-2 mt-0 ${createdRoomString ? 'hidden' : ''}`}
+                    value={joinRoomString ? joinRoomString : currentRoom}
                     ref={joinInputRef}
                     onChange={joinRoomInputHandler}
                   ></Input>
@@ -359,15 +360,6 @@ export default function Chats() {
                       onClick={endCall}
                     >
                       End Call
-                    </Button>
-
-                    <Button
-                      className={`w-full hover:bg-accent-light-bright active:opacity-90 dark:bg-cyan-100 hover:dark:bg-cyan-200 duration-200 ${
-                        createdRoomString ? '' : 'hidden'
-                      }`}
-                      onClick={showVideoCall}
-                    >
-                      Go To Chat
                     </Button>
                   </div>
                 </CardContent>

@@ -21,6 +21,8 @@ const buttonVariants = cva(
           'hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-50',
         link: 'text-zinc-900 underline-offset-4 hover:underline dark:text-zinc-50',
         custom: 'hover:bg-accent-light-faded p-2 rounded-full',
+        whiteboard:
+          'text-zinc-700 hover:bg-white/70 hover:text-black rounded-full duration-100',
       },
       size: {
         default: 'h-10 px-4 py-2',
