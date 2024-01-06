@@ -1,12 +1,10 @@
 const express = require('express');
 const app = express();
+const morgan = require('morgan');
 const cors = require('cors');
 const userRoutes = require('./routes/userRoutes');
 const errorController = require('./controllers/globalErrorController');
 const cookieParser = require('cookie-parser');
-
-// The CORS setup allows both for development and prodcution builds
-// WEB_CLIENT refers to frontend deployment
 
 // app.use(compression()) // install npm compression
 // app.use(helmet())
@@ -20,7 +18,7 @@ const cookieParser = require('cookie-parser');
 
 app.use(
   cors({
-    origin: ['http://localhost:3000', process.env.WEB_CLIENT],
+    origin: [process.env.WEB_CLIENT],
     methods: ['GET', 'POST', 'PATCH'],
     credentials: true,
   })

@@ -5,7 +5,7 @@ import { TbMaximize } from 'react-icons/tb';
 import { Button } from './ui/button';
 import { PiPhoneDisconnectFill } from 'react-icons/pi';
 import { IoMdMicOff, IoMdMic } from 'react-icons/io';
-import { toggleAudio, toggleVideo } from '@/app/utils/controls/control';
+import { toggleAudio, toggleVideo } from '@/utils/controls/callControls';
 import { FaVideo, FaVideoSlash } from 'react-icons/fa';
 
 export default function FloatingChatControl() {

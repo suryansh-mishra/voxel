@@ -6,20 +6,17 @@ const User = require('../../models/userModel');
 const AppError = require('../../utils/appError');
 const uid = new ShortUniqueId({ length: 10 });
 const mongoose = require('mongoose');
-const ObjectId = mongoose.Types.ObjectId;
 
 exports.createRoom = async (socket) => {
   try {
     const roomId = socket.firstName.trim() + "'s-voxel" + uid();
-    console.log('UUID : ', roomId);
+
     const room = await Room.create({
       roomId,
       participants: [socket.userId],
       roomAdmin: socket.userId,
     });
     if (socket.currentRoom) {
-      // Remove the user's current room and end room
-      // if the room is active because of him
       const previousRoom = await Room.findById(socket.currentRoom);
       if (previousRoom.roomAdmin === socket.userId) {
         // END THE MEETING?
@@ -65,17 +62,7 @@ exports.joinRoom = async (socket, roomId) => {
       },
     };
 
-  if (socket.currentRoom) {
-    const previousRoom = await Room.findById(socket.currentRoom);
-    // END THAT MEETING IF REQUIRED ?
-    // TODO : Handle logic to end the meeting when all users leave the room
-  }
-  console.log(typeof room.participants, room.participants);
-  let userIndex = room.participants.findIndex((el) => el === socket.userId);
-  if (userIndex === -1) {
-    room.participants.push(socket.userId);
-    room.activePasrticipantsCount += 1;
-  }
+  room.participants.push(socket.userId);
 
   try {
     room = await room.save();

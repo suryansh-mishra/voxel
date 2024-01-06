@@ -7,19 +7,19 @@ const useStore = create((set) => ({
   user: {},
 
   currentRoom: '',
-  createdRoomString: '', // Room string generated so that it is preserved b/w renders from one page to another
+  createdRoomString: '',
 
   messages: [],
 
   peerConnection: null,
   localStream: null, // Device A/V stream
   remoteStream: null, // Peer A/V stream
-  videoCallVisible: false, // Indicates whether or not to show the video
-  inCall: false, //  Not really needed, pending removal in near future
+  videoCallVisible: false,
+  inCall: false,
   isAudioOn: true,
   isVideoOn: true,
 
-  whiteboardVisible: true,
+  whiteboardVisible: false,
   shapes: [],
   lastShapeId: null,
 
@@ -35,7 +35,7 @@ const useStore = create((set) => ({
       return { lastShapeId: shapeId, shapes: [...state.shapes, val] };
     }),
 
-  emptyShapes: () => set((state) => ({ shapes: [] })),
+  emptyShapes: () => set(() => ({ shapes: [] })),
 
   undoShape: () =>
     set((state) => {
@@ -73,9 +73,9 @@ const useStore = create((set) => ({
   setSocket: (value) => set(() => ({ socket: value })),
   setUser: (value) => set(() => ({ user: value })),
   setIsLoggedInLoading: (value) => set(() => ({ isLoggedInLoading: value })),
-  setIsLoggedIn: (value) => set((state) => ({ isLoggedIn: value })),
+  setIsLoggedIn: (value) => set(() => ({ isLoggedIn: value })),
 
-  setMessages: (value) => {
+  setMessage: (value) => {
     set((state) => {
       let arr = [...state.messages];
       if (arr.length >= 20) {
@@ -84,6 +84,8 @@ const useStore = create((set) => ({
       return { messages: [value, ...arr] };
     });
   },
+
+  emptyMessages: () => set(() => ({ messages: [] })),
 }));
 
 export default useStore;

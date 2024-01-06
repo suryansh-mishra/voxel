@@ -8,7 +8,7 @@ import { Button } from './ui/button';
 import { PiPhoneDisconnectFill } from 'react-icons/pi';
 import { FaVideo, FaVideoSlash } from 'react-icons/fa';
 import { IoMdMic, IoMdMicOff } from 'react-icons/io';
-import { toggleVideo, toggleAudio } from '@/app/utils/controls/control';
+import { toggleAudio, toggleVideo } from '@/utils/controls/callControls';
 
 export default function ChatScreen() {
   const localVideoRef = useRef(null);

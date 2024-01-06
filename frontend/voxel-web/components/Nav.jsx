@@ -8,6 +8,7 @@ import { BiMenuAltRight } from 'react-icons/bi';
 import axios from 'axios';
 import useStore from '@/store/store';
 import { useToast } from './ui/use-toast';
+import { endChatHelper } from '@/utils/controls/chatControls';
 
 function NavListItem({ children, href, className, onClick }) {
   return (
@@ -53,15 +54,11 @@ export default function Nav() {
 
   const handleLogout = async () => {
     await axios.post(`${process.env.NEXT_PUBLIC_SERVER}/users/logout`);
-    toast({
-      title: 'Logged out',
-      description: "You've been successfully logged out",
-    });
+    toast({ title: 'Logged out' });
     setUser({});
-    // TODO : LEAVE THE CURRENT ROOM, LEAVE THE SOCKETS, LEAVE EVERYTHING AND LOG THE USER COMPLETELY OUT!
     setIsLoggedIn(false);
     setCurrentRoom('');
-    // End calls if any, manage disconnection etc
+    endChatHelper(state);
   };
 
   return (
@@ -109,6 +106,13 @@ export default function Nav() {
                   className={'block rounded-lg px-8 py-2'}
                 >
                   Chats
+                </NavListItem>
+                <NavListItem
+                  href="/"
+                  onClick={handleLogout}
+                  className={'block rounded-lg px-8 py-2'}
+                >
+                  Logout
                 </NavListItem>
               </ul>
             </nav>

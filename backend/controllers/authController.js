@@ -149,7 +149,7 @@ exports.isLoggedIn = async (req, res) => {
 // FIXME : INTRODUCE BETTER AUTH WORK FLOW
 
 exports.authenticate = async (req, res, next) => {
-  console.log('AT AUTHENTICATION ROUTE');
+  console.log('AT AUTHENTICATION ROUTE at AUTHENTICATE');
   try {
     const authToken = verifyJWT(req);
 

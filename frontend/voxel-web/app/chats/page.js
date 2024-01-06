@@ -16,6 +16,8 @@ import { useToast } from '@/components/ui/use-toast';
 import useStore from '@/store/store';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
+import { endCallHelper } from '@/utils/controls/callControls';
+import { endChatHelper } from '@/utils/controls/chatControls';
 
 function MessageBox({ variant, content }) {
   return (
@@ -31,24 +33,19 @@ function MessageBox({ variant, content }) {
 
 export default function Chats() {
   const router = useRouter();
-
   const { toast } = useToast();
-
   const [joinRoomString, setJoinRoomString] = useState('');
   const joinInputRef = useRef(null);
-
   const messageInputRef = useRef(null);
 
+  const state = useStore((state) => state);
   const peerConnection = useStore((state) => state.peerConnection);
   const currentRoom = useStore((state) => state.currentRoom);
   const inCall = useStore((state) => state.inCall);
   const isLoggedIn = useStore((state) => state.isLoggedIn);
   const socket = useStore((state) => state.socket);
-  const localStream = useStore((state) => state.localStream);
   const createdRoomString = useStore((state) => state.createdRoomString);
-
   const messages = useStore((state) => state.messages);
-
   const setInCall = useStore((state) => state.setInCall);
   const setRemoteStream = useStore((state) => state.setRemoteStream);
   const setCreatedRoomString = useStore((state) => state.setCreatedRoomString);
@@ -60,12 +57,18 @@ export default function Chats() {
   const removeShape = useStore((state) => state.removeShape);
   const emptyShapes = useStore((state) => state.emptyShapes);
 
-  const setMessages = useStore((state) => state.setMessages);
+  const setMessage = useStore((state) => state.setMessage);
 
   // CHECK AND INITIATE SOCKET CONNECTION IF NOT PRESENT
-  // useEffect(() => {
-
-  // }, [socket])
+  useEffect(() => {
+    if (!socket && isLoggedIn) {
+      console.log('Creating socket conn from chats page');
+      const socket = new io(`${process.env.NEXT_PUBLIC_SERVER_URI_BASE}`, {
+        withCredentials: true,
+      });
+      if (socket) setSocket(socket);
+    }
+  }, [socket]);
 
   const copyToClipboard = async (e) => {
     if (e) e.preventDefault();
@@ -106,49 +109,38 @@ export default function Chats() {
       pc.addTrack(track, stream);
     });
     const offer = await pc.createOffer();
-    await pc.setLocalDescription(offer);
-    socket.emit('call:offer', { roomId: currentRoom, offer });
-    setVideoCallVisible(true);
-  };
-
-  const createAnswer = async (offer) => {
-    const pc = new RTCPeerConnection();
-    const stream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
-    setLocalStream(stream);
-    const tracks = stream.getTracks();
-    tracks.forEach((track) => {
-      pc.addTrack(track, stream);
-    });
-    const remoteStream = (pc.ontrack = (event) => {
-      event.streams[0].getTracks((track) => {});
-    });
-    setPeerConnection(pc);
-  };
-
-  const endCall = () => {
-    if (inCall) {
-      peerConnection.close();
-      //       peerConnection.removeEventListener('icecandidate', handleIceCandidate);
-      // peerConnection.removeEventListener('datachannel', handleDataChannel);
-      const tracks = localStream?.getTracks();
-      tracks?.forEach(async (track) => {
-        track.stop();
+    if (stream)
+      pc.setLocalDescription(offer).then(() => {
+        socket.emit('call:offer', { roomId: currentRoom, offer });
+        console.log(
+          'PC : ',
+          peerConnection,
+          '\n\n\nUpdated yet? ',
+          state.peerConnection
+        );
       });
-      setVideoCallVisible(false);
-      setPeerConnection(null);
-      setRemoteStream(null);
-      setInCall(false);
-    }
   };
+
+  // const createAnswer = async (offer) => {
+  //   const pc = new RTCPeerConnection();
+  //   const stream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
+  //   setLocalStream(stream);
+  //   const tracks = stream.getTracks();
+  //   tracks.forEach((track) => {
+  //     pc.addTrack(track, stream);
+  //   });
+  //   const remoteStream = (pc.ontrack = (event) => {
+  //     event.streams[0].getTracks((track) => {});
+  //   });
+  //   setPeerConnection(pc);
+  // };
+
+  const endCall = () => endCallHelper(state);
 
   const endChat = () => {
-    if (inCall) endCall();
+    endChatHelper(state);
     socket.emit('room:leave', { roomId: currentRoom });
-    setCurrentRoom('');
-    setCreatedRoomString('');
   };
-
-  const showVideoCall = (e) => setVideoCallVisible(true);
 
   const createRoom = () => {
     if (socket) socket.emit('room:create');
@@ -165,11 +157,11 @@ export default function Chats() {
   };
 
   const sendMessage = () => {
-    if (!socket) toast({ title: 'Server connection not established' });
+    if (!socket) return toast({ title: 'Server connection not established' });
     if (!messageInputRef.current.value) return;
     const message = messageInputRef.current.value;
     socket.emit('message', { message, roomId: currentRoom });
-    setMessages({ message, variant: 'S' });
+    setMessage({ message, variant: 'S' });
     messageInputRef.current.value = '';
   };
 
@@ -202,17 +194,13 @@ export default function Chats() {
         });
       });
 
-      socket.on('call:end', () => {
-        if (inCall) endCall();
-      });
-
       socket.on('whiteboard:shape', (data) => {
         setShapes(data);
       });
 
       socket.on('whiteboard:undo', (data) => removeShape(data.shapeId));
 
-      socket.on('whiteboard:clear', (data) => emptyShapes());
+      socket.on('whiteboard:clear', emptyShapes);
 
       socket.on('error', (data) => {
         toast({
@@ -252,6 +240,7 @@ export default function Chats() {
         peerConnection.setRemoteDescription(answerDescription);
         toast({ title: 'Call connected' });
         setInCall(true);
+        setVideoCallVisible(true);
       });
 
       socket.on('call:candidate', (data) => {
@@ -271,45 +260,54 @@ export default function Chats() {
     }
   }, [socket, currentRoom, peerConnection]);
 
+  const handleIncomingCall = async (data) => {
+    const stream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
+    if (!stream)
+      return toast({
+        title: 'Media not available',
+        description: 'A/V devices permission not available for call',
+      });
+
+    setLocalStream(stream);
+    const pc = new RTCPeerConnection();
+    setPeerConnection(pc);
+    const offer = data.message.data.offer;
+    const offerDescription = new RTCSessionDescription(offer);
+    await pc.setRemoteDescription(offerDescription);
+    const tracks = stream.getTracks();
+    tracks.forEach((track) => {
+      pc.addTrack(track, stream);
+    });
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+
+    setVideoCallVisible(true);
+    socket.emit('call:answer', {
+      roomId: currentRoom,
+      answer,
+    });
+    setInCall(true);
+  };
+
   useEffect(() => {
     if (socket && currentRoom) {
-      socket.on('call:incoming', async (data) => {
-        console.log('Incoming call');
-        const stream = await navigator.mediaDevices.getUserMedia(
-          mediaConstraints
-        );
-        if (!stream)
-          // socket.emit('call:end', )
-          return toast({
-            title: 'Media not available',
-            description: 'A/V devices permission not available for call',
-          });
-
-        setLocalStream(stream);
-        const pc = new RTCPeerConnection();
-        setPeerConnection(pc);
-        const offer = data.message.data.offer;
-        const offerDescription = new RTCSessionDescription(offer);
-        await pc.setRemoteDescription(offerDescription);
-        const tracks = stream.getTracks();
-        tracks.forEach((track) => {
-          pc.addTrack(track, stream);
-        });
-        const answer = await pc.createAnswer();
-        await pc.setLocalDescription(answer);
-
-        setVideoCallVisible(true);
-        socket.emit('call:answer', {
-          roomId: currentRoom,
-          answer,
-        });
-        setInCall(true);
-      });
+      socket.on('call:incoming', handleIncomingCall);
       socket.on('message', (data) => {
-        setMessages({ message: data, variant: 'R' });
+        setMessage({ message: data, variant: 'R' });
       });
     }
   }, [socket, currentRoom]);
+
+  const handleDeclinedCall = (resp) => {
+    toast({ title: resp.message.title });
+    endCall();
+  };
+  useEffect(() => {
+    if (socket && peerConnection) {
+      socket.on('call:end', endCall);
+      socket.on('call:declined', handleDeclinedCall);
+    }
+  }, [socket, peerConnection]);
 
   return (
     <>
@@ -371,6 +369,12 @@ export default function Chats() {
                       onClick={endCall}
                     >
                       End Call
+                    </Button>
+                    <Button
+                      className={`${currentRoom ? '' : 'hidden'}`}
+                      onClick={endChat}
+                    >
+                      End Chat
                     </Button>
                   </div>
                 </CardContent>
