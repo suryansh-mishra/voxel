@@ -3,25 +3,62 @@ import { create } from 'zustand';
 const useStore = create((set) => ({
   isLoggedInLoading: true,
   isLoggedIn: false,
-  messages: [],
   socket: null,
   user: {},
-  whiteboardVisible: true,
 
+  currentRoom: '',
+  createdRoomString: '', // Room string generated so that it is preserved b/w renders from one page to another
+
+  messages: [],
+
+  peerConnection: null,
+  localStream: null, // Device A/V stream
+  remoteStream: null, // Peer A/V stream
+  videoCallVisible: false, // Indicates whether or not to show the video
+  inCall: false, //  Not really needed, pending removal in near future
   isAudioOn: true,
   isVideoOn: true,
 
-  peerConnection: null,
-  currentRoom: '', // Also indicates the user is inCall
-  videoCallVisible: false, // Indicates whether or not to show the video
-  inCall: false, //  Not really needed, pending removal in near future
-  localStream: null, // Device A/V stream
-  remoteStream: null, // Peer A/V stream
-  createdRoomString: '', // Room string generated so that it is preserved b/w renders from one page to another
-
+  whiteboardVisible: true,
   shapes: [],
-  setShapes: (val) => set((state) => ({ shapes: [...state.shapes, val] })),
+  lastShapeId: null,
+
+  setShapes: (val) =>
+    set((state) => {
+      let shapeId = '';
+      if (state.lastShapeId)
+        shapeId = `shape_${state.lastShapeId.split('_')[1]}_${
+          Number(state.lastShapeId.split('_')[2]) + 1
+        }`;
+      else shapeId = `shape_${String(Date.now()).slice(5)}_0`;
+      val.shapeId = shapeId;
+      return { lastShapeId: shapeId, shapes: [...state.shapes, val] };
+    }),
+
   emptyShapes: () => set((state) => ({ shapes: [] })),
+
+  undoShape: () =>
+    set((state) => {
+      const previousShapeId =
+        Number(state.lastShapeId.split('_')[2]) > 0
+          ? `shape_${state.lastShapeId.split('_')[1]}_${
+              Number(state.lastShapeId.split('_')[2]) - 1
+            }`
+          : null;
+
+      const filteredShapes = state.shapes.filter(
+        (shape) => shape.shapeId !== state.lastShapeId
+      );
+      return { lastShapeId: previousShapeId, shapes: filteredShapes };
+    }),
+
+  removeShape: (shapeId) =>
+    set((state) => {
+      const filteredShapes = state.shapes.filter(
+        (shape) => shape.shapeId !== shapeId
+      );
+      return { shapes: filteredShapes };
+    }),
 
   setIsAudioOn: (val) => set(() => ({ isAudioOn: val })),
   setIsVideoOn: (val) => set(() => ({ isVideoOn: val })),

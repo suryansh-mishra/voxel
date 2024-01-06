@@ -11,6 +11,12 @@ import { FaRegCircle } from 'react-icons/fa';
 import { PiLineSegmentFill } from 'react-icons/pi';
 import { IoSave } from 'react-icons/io5';
 
+/**
+ * ERASER FUNCTIONALITY MISSING
+ * STROKE WIDTH MISSING
+ * ROUGHNESS LEVEL SETTING MISSING
+ */
+
 const TOOL_TYPES = {
   PEN: 'PEN',
   RECT: 'RECTANGLE',
@@ -28,6 +34,8 @@ export default function Whiteboard() {
     shapes,
     setShapes,
     emptyShapes,
+    undoShape,
+    lastShapeId,
   ] = useStore((state) => [
     state.whiteboardVisible,
     state.setWhiteboardVisible,
@@ -36,17 +44,18 @@ export default function Whiteboard() {
     state.shapes,
     state.setShapes,
     state.emptyShapes,
+    state.undoShape,
+    state.lastShapeId,
   ]);
 
-  const strokeWidthRC = 2;
+  const strokeWidthRC = 2; // UPGRADE STROKE WIDTH SETTING TO CUSTOM
 
   const [roughCanvas, setRoughCanvas] = useState();
   const [boundary, setBoundary] = useState({ x: 0, y: 0 });
   const [isPickerVisible, setIsPickerVisible] = useState(false);
 
-  // const [size, setSize] = useState(1); TODO : ADD STROKE WIDTH SETTINGS ?
-
   // Drawing states ---- Using escape hatch from react for rough JS
+
   const colorInputRef = useRef(null);
   const canvasContainerRef = useRef(null);
   const shapesRef = useRef(shapes);
@@ -84,7 +93,13 @@ export default function Whiteboard() {
   const clearShapes = () => {
     emptyShapes();
     shapesRef.current = [];
-    socket?.emit('whiteboard:clear');
+    socket?.emit('whiteboard:clear', { roomId: currentRoom });
+  };
+
+  const undoShapeHandler = () => {
+    const shapeId = lastShapeId;
+    socket?.emit('whiteboard:undo', { roomId: currentRoom, shapeId });
+    undoShape();
   };
 
   const drawShapes = () => {
@@ -350,9 +365,9 @@ export default function Whiteboard() {
   }, [canvasRef, canvasContainerRef, whiteboardVisible]);
 
   return (
-    whiteboardVisible && (
-      // currentRoom && (
-      <div className="fixed flex z-50 justify-center items-center top-0 left-0 h-full w-full backdrop-brightness-75 backdrop-blur-sm">
+    whiteboardVisible &&
+    currentRoom && (
+      <div className="fixed flex z-50 justify-center items-center top-0 left-0 h-full w-full backdrop-brightness-50 dark:backdrop-brightness-75 backdrop-blur-md">
         <div className="w-28 shrink-0 flex flex-col gap-2 justify-center items-center h-full">
           <Button
             className={`aspect-square h-8 hover:scale-90 animate-in transition-all outline outline-white outline-2 -outline-offset-1 hover:brightness-125 duration-100`}
@@ -363,7 +378,7 @@ export default function Whiteboard() {
               type="color"
               className={`${
                 isPickerVisible ? 'visible' : 'invisible'
-              } h-0 w-0 aspect-square rounded-xl focus:rounded-xl`}
+              } h-0 w-0 opacity-0 rounded-xl focus:rounded-xl`}
               ref={colorInputRef}
               onChange={usePickOnChange}
             ></input>
@@ -417,6 +432,7 @@ export default function Whiteboard() {
             size="icon"
             className="mt-2 bg-white/80 hover:bg-white/90 rotate-45"
             disabled={shapes.length === 0}
+            onClick={undoShapeHandler}
           >
             <MdOutlineUndo />
           </Button>
@@ -449,7 +465,10 @@ export default function Whiteboard() {
 
         {/* CANVAS AREA */}
 
-        <div className="grow flex justify-center" ref={canvasContainerRef}>
+        <div
+          className="grow flex justify-center dark:bg-zinc-900 overflow-hidden rounded-2xl"
+          ref={canvasContainerRef}
+        >
           <canvas
             className="aspect-video cursor-crosshair w-full bg-[url(/canvas.png)]"
             ref={canvasRef}

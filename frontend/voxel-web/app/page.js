@@ -18,8 +18,9 @@ export default function HomePage() {
   const isLoggedIn = useStore((state) => state.isLoggedIn);
   const setIsLoggedIn = useStore((state) => state.setIsLoggedIn);
   const setUser = useStore((state) => state.setUser);
-  const { toast } = useToast();
+  const socket = useStore((state) => state.socket);
   const setSocket = useStore((state) => state.setSocket);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -32,26 +33,27 @@ export default function HomePage() {
             setIsLoggedIn(true);
             setUser(user.data.data.user);
             setIsLoggedInLoading(false);
-            const socket = new io(
-              `${process.env.NEXT_PUBLIC_SERVER_URI_BASE}`,
-              {
-                withCredentials: true,
-              }
-            );
-            if (socket) setSocket(socket);
           }
         })
         .catch((err) => {
-          console.log('WE ARE AT ERROR OF USER NOT FOUND');
           toast({
-            title: 'No session found',
-            description: 'Please sign in to voxel',
+            title: 'Please sign in to voxel',
             variant: 'destructive',
           });
           setIsLoggedInLoading(false);
+          console.log('Login Error : ', err);
         });
     }
   }, []);
+
+  useEffect(() => {
+    if (!socket && isLoggedIn) {
+      const socket = new io(`${process.env.NEXT_PUBLIC_SERVER_URI_BASE}`, {
+        withCredentials: true,
+      });
+      if (socket) setSocket(socket);
+    }
+  }, [isLoggedIn]);
 
   return (
     <GoogleOAuthProvider clientId="943016074848-p637kqbq05gqfam1svrjtt58evjk2et1.apps.googleusercontent.com">

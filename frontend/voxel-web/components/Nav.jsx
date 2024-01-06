@@ -43,6 +43,8 @@ export default function Nav() {
   const [hamburgerOpen, setHamburgerOpen] = useState(false);
   const setIsLoggedIn = useStore((state) => state.setIsLoggedIn);
   const setUser = useStore((state) => state.setUser);
+  const setCurrentRoom = useStore((state) => state.setCurrentRoom);
+
   const { toast } = useToast();
 
   const toggleHamburger = () => {
@@ -58,6 +60,8 @@ export default function Nav() {
     setUser({});
     // TODO : LEAVE THE CURRENT ROOM, LEAVE THE SOCKETS, LEAVE EVERYTHING AND LOG THE USER COMPLETELY OUT!
     setIsLoggedIn(false);
+    setCurrentRoom('');
+    // End calls if any, manage disconnection etc
   };
 
   return (

@@ -134,6 +134,39 @@ io.on('connection', (socket) => {
     });
   });
 
+  socket.on('whiteboard:undo', async (data) => {
+    const roomId = data.roomId;
+    const isValidRoom = Boolean(io.sockets.adapter.rooms.get(roomId));
+    if (!isValidRoom)
+      return socket.emit('error', {
+        message: {
+          title: 'Something went wrong',
+          description: 'The room was not correctly found',
+        },
+      });
+    const sockets = [...io.sockets.adapter.rooms.get(roomId)];
+    sockets.forEach((socketId) => {
+      if (socketId !== socket.id)
+        io.to(socketId).emit('whiteboard:undo', data.shapeId);
+    });
+  });
+
+  socket.on('whiteboard:clear', async (data) => {
+    const roomId = data.roomId;
+    const isValidRoom = Boolean(io.sockets.adapter.rooms.get(roomId));
+    if (!isValidRoom)
+      return socket.emit('error', {
+        message: {
+          title: 'Something went wrong',
+          description: 'The room was not correctly found',
+        },
+      });
+    const sockets = [...io.sockets.adapter.rooms.get(roomId)];
+    sockets.forEach((socketId) => {
+      if (socketId !== socket.id) io.to(socketId).emit('whiteboard:clear');
+    });
+  });
+
   socket.on('call:offer', async (data) => {
     const roomId = data.roomId;
     const offer = data.offer;

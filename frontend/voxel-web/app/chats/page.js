@@ -57,8 +57,15 @@ export default function Chats() {
   const setLocalStream = useStore((state) => state.setLocalStream);
   const setCurrentRoom = useStore((state) => state.setCurrentRoom);
   const setShapes = useStore((state) => state.setShapes);
+  const removeShape = useStore((state) => state.removeShape);
+  const emptyShapes = useStore((state) => state.emptyShapes);
 
   const setMessages = useStore((state) => state.setMessages);
+
+  // CHECK AND INITIATE SOCKET CONNECTION IF NOT PRESENT
+  // useEffect(() => {
+
+  // }, [socket])
 
   const copyToClipboard = async (e) => {
     if (e) e.preventDefault();
@@ -202,6 +209,10 @@ export default function Chats() {
       socket.on('whiteboard:shape', (data) => {
         setShapes(data);
       });
+
+      socket.on('whiteboard:undo', (data) => removeShape(data.shapeId));
+
+      socket.on('whiteboard:clear', (data) => emptyShapes());
 
       socket.on('error', (data) => {
         toast({
