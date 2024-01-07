@@ -26,6 +26,7 @@ exports.logout = async (req, res) => {
     ),
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
+    sameSite: 'none',
   };
 
   return res
@@ -56,8 +57,10 @@ exports.login = async (req, res) => {
       userInfo.picture =
         'https://api.dicebear.com/7.x/notionists-neutral/svg?seed=userInfo.email';
     console.log('RCV : ', userInfo);
+
     let user;
     user = await User.findOne({ email: userInfo.email });
+
     if (!user) {
       user = await User.create({
         firstName: userInfo.given_name,
@@ -97,6 +100,7 @@ exports.login = async (req, res) => {
         ),
         secure: process.env.NODE_ENV === 'production',
         httpOnly: true,
+        sameSite: 'none',
       };
 
       return res
@@ -158,8 +162,6 @@ exports.isLoggedIn = async (req, res) => {
     next(new AppError());
   }
 };
-
-// FIXME : INTRODUCE BETTER AUTH WORK FLOW
 
 exports.authenticate = async (req, res, next) => {
   console.log('AT AUTHENTICATION ROUTE at AUTHENTICATE');

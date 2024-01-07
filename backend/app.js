@@ -30,8 +30,6 @@ app.use(express.json({ limit: '10kb' }));
 app.use(cookieParser());
 
 app.use('/api/v1/users', userRoutes);
-
-// TODO : FURTHER --ADMIN FUNCTIONALITY CAN BE GIVEN ON ROOMS ROUTE ETC
 // app.use('/api/v1/rooms', roomRoutes);
 
 app.use(errorController);
