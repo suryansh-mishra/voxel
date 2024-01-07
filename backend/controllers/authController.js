@@ -40,7 +40,7 @@ exports.logout = async (req, res) => {
 };
 
 exports.login = async (req, res) => {
-  console.log('Hit the login route');
+  console.log('LOGIN REQUEST : ', req);
   try {
     const resp = await axios.post('https://oauth2.googleapis.com/token', {
       code: req.body.data.code,
@@ -53,16 +53,21 @@ exports.login = async (req, res) => {
     const { data: userInfo } = await axios.get(
       `https://www.googleapis.com/oauth2/v2/userinfo?access_token=${accessToken}`
     );
-    if (!userInfo.picture)
-      (userInfo.picture =
-        'https://api.dicebear.com/7.x/notionists-neutral/svg?seed=userInfo.email'),
-        console.log(userInfo);
+      userInfo?.picture =
+        'https://api.dicebear.com/7.x/notionists-neutral/svg?seed=userInfo.email';
     let user;
     user = await User.findOne({ email: userInfo.email });
-    if (user) {
-      const token = signJWT(user._id, user.email);
+    if (!user) {
 
-      // TODO : CHECK SECURE COOKIE FOR PRODUCTION READY
+      user = await User.create({
+        firstName: userInfo.given_name,
+        lastName: userInfo.family_name,
+        email: userInfo.email,
+        profilePic: userInfo.picture,
+      });
+    }
+    console.log('USER : ', user.firstName)
+    const token = signJWT(user._id, user.email);
 
       const cookieOptions = {
         expires: new Date(
@@ -86,28 +91,13 @@ exports.login = async (req, res) => {
             },
           },
         });
-    } else
-      user = await User.create({
-        firstName: userInfo.given_name,
-        lastName: userInfo.family_name,
-        email: userInfo.email,
-        profilePic: userInfo.picture,
-      });
-
-    res.status(200).json({
-      status: 'success',
-      data: {
-        user,
-        jwt: 'none',
-      },
-    });
   } catch (err) {
-    console.log('ERROR : ', err);
+    console.log('AT LOGIN ROUTE, ERROR : ', err);
   }
 };
 
 exports.isLoggedIn = async (req, res) => {
-  console.log('AT AUTHENTICATION ROUTE');
+  console.log('AT isLoggedIn ROUTE');
   try {
     const authToken = verifyJWT(req);
     if (authToken?.decoded?.error || !authToken.decoded) {

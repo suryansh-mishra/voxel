@@ -27,6 +27,7 @@ export default function HomePage() {
       setIsLoggedInLoading(true);
       axios(`${process.env.NEXT_PUBLIC_SERVER}/users/isLoggedIn`, {
         method: 'GET',
+        withCredentials: true,
       })
         .then((user) => {
           if (user.data.data.user) {

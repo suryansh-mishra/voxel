@@ -20,7 +20,6 @@ export default function Login() {
   const googleLogin = useGoogleLogin({
     flow: 'auth-code',
     onSuccess: async (res) => {
-      console.log(process.env.NEXT_PUBLIC_SERVER);
       const user = await axios.post(
         `${process.env.NEXT_PUBLIC_SERVER}/users/login`,
         {
