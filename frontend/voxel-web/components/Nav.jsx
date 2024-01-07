@@ -45,7 +45,7 @@ export default function Nav() {
   const setIsLoggedIn = useStore((state) => state.setIsLoggedIn);
   const setUser = useStore((state) => state.setUser);
   const setCurrentRoom = useStore((state) => state.setCurrentRoom);
-
+  const state = useStore((state) => state);
   const { toast } = useToast();
 
   const toggleHamburger = () => {
@@ -54,7 +54,6 @@ export default function Nav() {
 
   const handleLogout = async () => {
     await axios.post(`${process.env.NEXT_PUBLIC_SERVER}/users/logout`);
-    toast({ title: 'Logged out' });
     setUser({});
     setIsLoggedIn(false);
     setCurrentRoom('');

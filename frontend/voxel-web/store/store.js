@@ -60,6 +60,16 @@ const useStore = create((set) => ({
       return { shapes: filteredShapes };
     }),
 
+  closePeerConnection: () =>
+    set((state) => {
+      state.peerConnection?.close();
+      return { peerConnection: null };
+    }),
+  closeLocalStream: () =>
+    set((state) => {
+      state.localStream?.getTracks().forEach((track) => track.stop());
+      return { localStream: null };
+    }),
   setIsAudioOn: (val) => set(() => ({ isAudioOn: val })),
   setIsVideoOn: (val) => set(() => ({ isVideoOn: val })),
   setWhiteboardVisible: (val) => set(() => ({ whiteboardVisible: val })),

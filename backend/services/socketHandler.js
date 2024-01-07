@@ -167,8 +167,11 @@ const socketHandler = (io, socket) => {
     });
   });
 
-  socket.on('call:end', async () => {
-    io.to(socket.roomId).emit('call:end');
+  socket.on('call:end', (data) => {
+    const roomId = data.roomId;
+    const sockets = [...io.sockets.adapter.rooms.get(roomId)];
+    const recepient = sockets[0] === socket.id ? sockets[1] : sockets[0];
+    socket.to(recepient).emit('call:end');
   });
 
   socket.on('disconnect', async () => {

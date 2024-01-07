@@ -15,11 +15,8 @@ export const toggleVideo = (stream) => {
 };
 
 export const endCallHelper = (state) => {
-  state.peerConnection?.close();
-  const tracks = state.localStream?.getTracks();
-  tracks?.forEach(async (track) => {
-    track.stop();
-  });
+  state.closeLocalStream();
+  state.closePeerConnection();
   state.setLocalStream(null);
   state.setIsAudioOn(true);
   state.setIsVideoOn(true);
