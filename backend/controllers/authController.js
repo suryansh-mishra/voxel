@@ -40,7 +40,6 @@ exports.logout = async (req, res) => {
 };
 
 exports.login = async (req, res) => {
-  console.log('LOGIN REQUEST : ', req);
   try {
     const resp = await axios.post('https://oauth2.googleapis.com/token', {
       code: req.body.data.code,
@@ -67,7 +66,6 @@ exports.login = async (req, res) => {
         profilePic: userInfo.picture,
       });
     }
-    console.log('USER : ', user.firstName);
     const token = signJWT(user._id, user.email);
 
     const cookieOptions = {
@@ -98,7 +96,7 @@ exports.login = async (req, res) => {
 };
 
 exports.isLoggedIn = async (req, res) => {
-  console.log('AT isLoggedIn ROUTE');
+  console.log('AT isLoggedIn ROUTE', req.cookies);
   try {
     const authToken = verifyJWT(req);
     if (authToken?.decoded?.error || !authToken.decoded) {

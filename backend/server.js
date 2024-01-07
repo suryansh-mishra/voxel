@@ -40,7 +40,9 @@ io.use(async (socket, next) => {
   console.log('Socket middleware used');
   const cookies = socket.handshake?.headers?.cookie;
   let token;
-  console.log(cookies);
+
+  console.log('Socket got cookies as ', cookies);
+
   cookies?.split(';').forEach((element) => {
     element = element.trim();
     if (element.startsWith('jwt=')) {
