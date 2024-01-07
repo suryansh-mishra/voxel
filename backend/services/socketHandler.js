@@ -175,7 +175,8 @@ const socketHandler = (io, socket) => {
   });
 
   socket.on('disconnect', async () => {
-    // TODO : UPDATE IN ROOM CONTROLLER
+    // socket.emit('room:leave')
+    // socket.emit('call:end') if calls, right?
 
     console.log(
       chalk.bgRed(
