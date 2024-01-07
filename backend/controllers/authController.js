@@ -65,31 +65,55 @@ exports.login = async (req, res) => {
         email: userInfo.email,
         profilePic: userInfo.picture,
       });
-    }
-    const token = signJWT(user._id, user.email);
+      const token = signJWT(user._id, user.email);
+      const cookieOptions = {
+        expires: new Date(
+          Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000
+        ),
+        secure: process.env.NODE_ENV === 'production',
+        httpOnly: true,
+      };
 
-    const cookieOptions = {
-      expires: new Date(
-        Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000
-      ),
-      secure: process.env.NODE_ENV === 'production',
-      httpOnly: true,
-    };
-
-    return res
-      .cookie('jwt', token, cookieOptions)
-      .status(200)
-      .json({
-        status: 'success',
-        data: {
-          user: {
-            firstName: user.firstName,
-            lastName: user.lastName,
-            email: user.email,
-            profilePic: user.picture,
+      return res
+        .cookie('jwt', token, cookieOptions)
+        .status(200)
+        .json({
+          status: 'success',
+          data: {
+            user: {
+              firstName: user.firstName,
+              lastName: user.lastName,
+              email: user.email,
+              profilePic: user.picture,
+            },
           },
-        },
-      });
+        });
+    } else {
+      const token = signJWT(user._id, user.email);
+
+      const cookieOptions = {
+        expires: new Date(
+          Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000
+        ),
+        secure: process.env.NODE_ENV === 'production',
+        httpOnly: true,
+      };
+
+      return res
+        .cookie('jwt', token, cookieOptions)
+        .status(200)
+        .json({
+          status: 'success',
+          data: {
+            user: {
+              firstName: user.firstName,
+              lastName: user.lastName,
+              email: user.email,
+              profilePic: user.picture,
+            },
+          },
+        });
+    }
   } catch (err) {
     console.log('AT LOGIN ROUTE, ERROR : ', err);
   }
