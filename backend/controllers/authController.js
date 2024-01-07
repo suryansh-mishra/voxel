@@ -53,12 +53,13 @@ exports.login = async (req, res) => {
     const { data: userInfo } = await axios.get(
       `https://www.googleapis.com/oauth2/v2/userinfo?access_token=${accessToken}`
     );
-      userInfo?.picture =
+    if (userInfo)
+      userInfo.picture =
         'https://api.dicebear.com/7.x/notionists-neutral/svg?seed=userInfo.email';
+    console.log('RCV : ', userInfo);
     let user;
     user = await User.findOne({ email: userInfo.email });
     if (!user) {
-
       user = await User.create({
         firstName: userInfo.given_name,
         lastName: userInfo.family_name,
@@ -66,31 +67,31 @@ exports.login = async (req, res) => {
         profilePic: userInfo.picture,
       });
     }
-    console.log('USER : ', user.firstName)
+    console.log('USER : ', user.firstName);
     const token = signJWT(user._id, user.email);
 
-      const cookieOptions = {
-        expires: new Date(
-          Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000
-        ),
-        secure: process.env.NODE_ENV === 'production',
-        httpOnly: true,
-      };
+    const cookieOptions = {
+      expires: new Date(
+        Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000
+      ),
+      secure: process.env.NODE_ENV === 'production',
+      httpOnly: true,
+    };
 
-      return res
-        .cookie('jwt', token, cookieOptions)
-        .status(200)
-        .json({
-          status: 'success',
-          data: {
-            user: {
-              firstName: user.firstName,
-              lastName: user.lastName,
-              email: user.email,
-              profilePic: user.picture,
-            },
+    return res
+      .cookie('jwt', token, cookieOptions)
+      .status(200)
+      .json({
+        status: 'success',
+        data: {
+          user: {
+            firstName: user.firstName,
+            lastName: user.lastName,
+            email: user.email,
+            profilePic: user.picture,
           },
-        });
+        },
+      });
   } catch (err) {
     console.log('AT LOGIN ROUTE, ERROR : ', err);
   }
