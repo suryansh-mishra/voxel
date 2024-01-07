@@ -233,6 +233,10 @@ export default function Chats() {
     }
   }, []);
 
+  if (socket) {
+    socket.removeAllListeners('');
+  }
+
   useEffect(() => {
     if (socket?.listeners('room:created').length === 0) {
       socket.on('room:created', handleRoomCreation);
@@ -279,7 +283,7 @@ export default function Chats() {
       socket.on('call:answered', handleAnsweredCall);
       socket.on('call:candidate', handleIceCandidates);
     }
-  }, [peerConnection]);
+  }, [peerConnection, currentRoom]);
 
   useEffect(() => {
     if (socket) {

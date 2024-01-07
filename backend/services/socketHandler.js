@@ -145,6 +145,15 @@ const socketHandler = (io, socket) => {
   socket.on('call:answer', async (data) => {
     const answer = data.answer;
     const roomId = data.roomId;
+    console.log('Answer : ', roomId);
+    const isValidRoom = Boolean(io.sockets.adapter.rooms?.get(roomId));
+    if (!isValidRoom)
+      return socket.emit('error', {
+        message: {
+          title: 'Something went wrong',
+          description: 'The room was not correctly found',
+        },
+      });
     const sockets = [...io.sockets.adapter.rooms?.get(roomId)];
     const caller = sockets[0] === socket.id ? sockets[1] : sockets[0];
     socket.to(caller).emit('call:answered', {
@@ -160,6 +169,15 @@ const socketHandler = (io, socket) => {
   socket.on('call:candidate', (data) => {
     const candidate = data.candidate;
     const roomId = data.roomId;
+    console.log('Candidate : ', roomId);
+    const isValidRoom = Boolean(io.sockets.adapter.rooms?.get(roomId));
+    if (!isValidRoom)
+      return socket.emit('error', {
+        message: {
+          title: 'Something went wrong',
+          description: 'The room was not correctly found',
+        },
+      });
     const sockets = [...io.sockets.adapter.rooms?.get(roomId)];
     const recepient = sockets[0] === socket.id ? sockets[1] : sockets[0];
     socket.to(recepient).emit('call:candidate', {
