@@ -41,6 +41,7 @@ export default function Home() {
     const resp = await axios(`${process.env.NEXT_PUBLIC_SERVER}/users/edit`, {
       method: 'PATCH',
       data: { lastName, firstName, nickName },
+      withCredentials: true,
     });
     if (resp) setSubmitSpinner(false);
     setUser(resp.data.data.user);
@@ -67,7 +68,7 @@ export default function Home() {
           <div className="md:w-full py-4 md:border-r md:dark:border-zinc-800 md:border-zinc-200 leading-relaxed md:pr-4">
             <h2 className="text-2xl dark:text-zinc-300">You</h2>
             <Avatar className="my-3 hover:cursor-not-allowed">
-              <AvatarImage></AvatarImage>
+              <AvatarImage src={`${user.profilePic}`}></AvatarImage>
               <AvatarFallback>
                 <FaUser />
               </AvatarFallback>

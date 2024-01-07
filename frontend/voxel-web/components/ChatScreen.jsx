@@ -30,7 +30,6 @@ export default function ChatScreen() {
     }
 
     if (remoteVideoRef.current && remoteStream) {
-      console.log('Remote video stream available', remoteStream);
       remoteVideoRef.current.srcObject = remoteStream;
     }
   }, [

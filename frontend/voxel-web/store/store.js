@@ -5,6 +5,7 @@ const useStore = create((set) => ({
   isLoggedIn: false,
   socket: null,
   user: {},
+  currentRoomUserCount: null,
 
   currentRoom: '',
   createdRoomString: '',
@@ -23,6 +24,7 @@ const useStore = create((set) => ({
   shapes: [],
   lastShapeId: null,
 
+  setCurrentRoomUserCount: (val) => set(() => ({ currentRoomUserCount: val })),
   setShapes: (val) =>
     set((state) => {
       let shapeId = '';
@@ -49,6 +51,9 @@ const useStore = create((set) => ({
       const filteredShapes = state.shapes.filter(
         (shape) => shape.shapeId !== state.lastShapeId
       );
+
+      state.socket?.emit('undoShape', previousShapeId);
+
       return { lastShapeId: previousShapeId, shapes: filteredShapes };
     }),
 
@@ -65,18 +70,24 @@ const useStore = create((set) => ({
       state.peerConnection?.close();
       return { peerConnection: null };
     }),
+
   closeLocalStream: () =>
     set((state) => {
       state.localStream?.getTracks().forEach((track) => track.stop());
       return { localStream: null };
     }),
+
   setIsAudioOn: (val) => set(() => ({ isAudioOn: val })),
   setIsVideoOn: (val) => set(() => ({ isVideoOn: val })),
   setWhiteboardVisible: (val) => set(() => ({ whiteboardVisible: val })),
   setPeerConnection: (val) => set(() => ({ peerConnection: val })),
   setCurrentRoom: (val) => set(() => ({ currentRoom: val })),
   setCreatedRoomString: (val) => set(() => ({ createdRoomString: val })),
-  setRemoteStream: (val) => set(() => ({ remoteStream: val })),
+  setRemoteStream: (val) =>
+    set((state) => {
+      console.log('Remote stream available : ', val);
+      return { remoteStream: val };
+    }),
   setLocalStream: (val) => set(() => ({ localStream: val })),
   setInCall: (val) => set(() => ({ inCall: val })),
   setVideoCallVisible: (val) => set(() => ({ videoCallVisible: val })),

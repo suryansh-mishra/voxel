@@ -3,7 +3,6 @@
 import Login from '@/components/Login';
 import useStore from '@/store/store';
 import { GoogleOAuthProvider } from '@react-oauth/google';
-import { useToast } from '@/components/ui/use-toast';
 import Home from '@/components/Home';
 import SplashScreen from '@/components/SplashScreen';
 import axios from 'axios';
@@ -20,7 +19,6 @@ export default function HomePage() {
   const setUser = useStore((state) => state.setUser);
   const socket = useStore((state) => state.socket);
   const setSocket = useStore((state) => state.setSocket);
-  const { toast } = useToast();
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -37,12 +35,8 @@ export default function HomePage() {
           }
         })
         .catch((err) => {
-          toast({
-            title: 'Please sign in to voxel',
-            variant: 'destructive',
-          });
           setIsLoggedInLoading(false);
-          console.log('Login Error : ', err);
+          console.log('Not yet logged in', err);
         });
     }
   }, []);
@@ -55,6 +49,10 @@ export default function HomePage() {
       if (socket) setSocket(socket);
     }
   }, [isLoggedIn]);
+
+  useEffect(() => {
+    console.log('Checking socket callbacks :', socket?._callbacks);
+  }, [socket]);
 
   return (
     <GoogleOAuthProvider clientId="943016074848-p637kqbq05gqfam1svrjtt58evjk2et1.apps.googleusercontent.com">

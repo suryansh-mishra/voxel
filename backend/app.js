@@ -6,8 +6,8 @@ const userRoutes = require('./routes/userRoutes');
 const errorController = require('./controllers/globalErrorController');
 const cookieParser = require('cookie-parser');
 
-// app.use(compression()) // install npm compression
-// app.use(helmet())
+app.use(compression());
+app.use(helmet());
 // const RateLimit = require("express-rate-limit");
 // const limiter = RateLimit({
 //   windowMs: 1 * 60 * 1000, // 1 minute

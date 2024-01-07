@@ -18,6 +18,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
 import { endCallHelper } from '@/utils/controls/callControls';
 import { endChatHelper } from '@/utils/controls/chatControls';
+import { servers, mediaConstraints } from '@/utils/webrtc-config/constraints';
 
 function MessageBox({ variant, content }) {
   return (
@@ -39,24 +40,14 @@ export default function Chats() {
   const messageInputRef = useRef(null);
 
   const state = useStore((state) => state);
-  const peerConnection = useStore((state) => state.peerConnection);
   const currentRoom = useStore((state) => state.currentRoom);
   const inCall = useStore((state) => state.inCall);
   const isLoggedIn = useStore((state) => state.isLoggedIn);
   const socket = useStore((state) => state.socket);
   const createdRoomString = useStore((state) => state.createdRoomString);
   const messages = useStore((state) => state.messages);
-  const setInCall = useStore((state) => state.setInCall);
-  const setRemoteStream = useStore((state) => state.setRemoteStream);
-  const setCreatedRoomString = useStore((state) => state.setCreatedRoomString);
   const setPeerConnection = useStore((state) => state.setPeerConnection);
-  const setVideoCallVisible = useStore((state) => state.setVideoCallVisible);
   const setLocalStream = useStore((state) => state.setLocalStream);
-  const setCurrentRoom = useStore((state) => state.setCurrentRoom);
-  const setShapes = useStore((state) => state.setShapes);
-  const removeShape = useStore((state) => state.removeShape);
-  const emptyShapes = useStore((state) => state.emptyShapes);
-
   const setMessage = useStore((state) => state.setMessage);
 
   const copyToClipboard = async (e) => {
@@ -77,21 +68,17 @@ export default function Chats() {
     }
   };
 
-  const servers = {
-    iceServers: [{ urls: ['stun:stun1.l.google.com:19302'] }],
-  };
-
-  const mediaConstraints = { video: true, audio: true };
-
-  const clearPreviousRoom = () => {
-    setCurrentRoom('');
-    setCreatedRoomString('');
-    setJoinRoomString('');
+  const endChat = () => {
+    endChatHelper(state);
+    socket.emit('room:leave', { roomId: currentRoom });
   };
 
   const joinVoxelChat = () => {
-    if (socket && joinRoomString)
+    if (socket && joinRoomString) {
+      if (currentRoom) endChat();
+
       socket.emit('room:join', { roomId: joinRoomString });
+    }
   };
 
   const joinRoomInputHandler = (e) => {
@@ -99,30 +86,11 @@ export default function Chats() {
   };
 
   const createRoom = () => {
-    if (socket) socket.emit('room:create');
-    else toast({ title: 'Error connecting to servers' });
-  };
+    if (socket) {
+      if (currentRoom) endChat();
 
-  const endChat = () => {
-    endChatHelper(state);
-    socket.emit('room:leave', { roomId: currentRoom });
-  };
-
-  const handleRoomCreation = (data) => {
-    clearPreviousRoom();
-    setCurrentRoom(data.roomId);
-    setCreatedRoomString(data.roomId);
-    toast({
-      title: 'Voxel room created',
-      description: 'Invite your friends. Share Room Id!',
-    });
-  };
-
-  const handleRoomJoined = (data) => {
-    setCurrentRoom(data.message.data.roomId);
-    toast({
-      title: data.message.title,
-    });
+      socket.emit('room:create');
+    } else toast({ title: 'Error connecting to servers' });
   };
 
   const createOffer = async () => {
@@ -147,7 +115,6 @@ export default function Chats() {
   };
 
   const sendMessage = () => {
-    if (!socket) return toast({ title: 'Server connection not established' });
     if (!messageInputRef.current.value) return;
     const message = messageInputRef.current.value;
     socket.emit('message', { message, roomId: currentRoom });
@@ -156,68 +123,8 @@ export default function Chats() {
   };
 
   const endCall = () => {
-    console.log('Call end was called');
     if (inCall) socket.emit('call:end', { roomId: currentRoom });
     endCallHelper(state);
-  };
-  const handleEndedCall = () => {
-    console.log('Ended call was handled');
-    endCallHelper(state);
-  };
-  const handleDeclinedCall = (resp) => {
-    toast({ title: resp.message.title });
-    endCall();
-  };
-
-  const handleIncomingCall = async (data) => {
-    const stream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
-    if (!stream)
-      return toast({
-        title: 'Media not available',
-        description: 'A/V devices permission not available for call',
-      });
-
-    setLocalStream(stream);
-    const pc = new RTCPeerConnection();
-    setPeerConnection(pc);
-    const offer = data.message.data.offer;
-    const offerDescription = new RTCSessionDescription(offer);
-    await pc.setRemoteDescription(offerDescription);
-    const tracks = stream.getTracks();
-    tracks.forEach((track) => {
-      pc.addTrack(track, stream);
-    });
-    const answer = await pc.createAnswer();
-    await pc.setLocalDescription(answer);
-
-    setVideoCallVisible(true);
-    socket.emit('call:answer', {
-      roomId: currentRoom,
-      answer,
-    });
-    setInCall(true);
-  };
-
-  const handleAnsweredCall = (data) => {
-    const answer = data.message.data.answer;
-    const answerDescription = new RTCSessionDescription(answer);
-    peerConnection.setRemoteDescription(answerDescription);
-    toast({ title: 'Call connected' });
-    setInCall(true);
-    setVideoCallVisible(true);
-  };
-
-  const handleIceCandidates = (data) => {
-    const candidate = new RTCIceCandidate(data.candidate);
-    peerConnection
-      .addIceCandidate(candidate)
-      .then(() => {
-        console.log('Successfully added ICE Candidates by getting from socket');
-      })
-      .catch((error) => {
-        toast({ title: 'Issues in call establishment' });
-        console.error('Error adding ICE candidate:', error);
-      });
   };
 
   useEffect(() => {
@@ -232,71 +139,6 @@ export default function Chats() {
       if (socket) setSocket(socket);
     }
   }, []);
-
-  if (socket) {
-    socket.removeAllListeners('');
-  }
-
-  useEffect(() => {
-    if (socket?.listeners('room:created').length === 0) {
-      socket.on('room:created', handleRoomCreation);
-      socket.on('room:joined', handleRoomJoined);
-      socket.on('whiteboard:shape', (data) => setShapes(data));
-      socket.on('whiteboard:undo', (data) => removeShape(data.shapeId));
-      socket.on('whiteboard:clear', emptyShapes);
-
-      socket.on('error', (data) => {
-        toast({
-          title: data.message.title,
-          description: data.message.description,
-          variant: 'destructive',
-        });
-      });
-    }
-  }, [socket]);
-
-  useEffect(() => {
-    if (socket && peerConnection) {
-      if (!peerConnection?.ontrack)
-        peerConnection.ontrack = (event) => {
-          if (event) {
-            const newStream = new MediaStream();
-            event.streams[0].getTracks().forEach((track) => {
-              newStream.addTrack(track);
-            });
-            setRemoteStream(newStream);
-          }
-        };
-
-      peerConnection.onicecandidate = (event) => {
-        if (event.candidate) {
-          socket.emit('call:candidate', {
-            roomId: currentRoom,
-            candidate: event.candidate,
-          });
-        }
-      };
-      socket.removeAllListeners('call:end');
-      socket.removeAllListeners('call:declined');
-      socket.on('call:end', handleEndedCall);
-      socket.on('call:declined', handleDeclinedCall);
-      socket.on('call:answered', handleAnsweredCall);
-      socket.on('call:candidate', handleIceCandidates);
-    }
-  }, [peerConnection, currentRoom]);
-
-  useEffect(() => {
-    if (socket) {
-      socket.on('call:incoming', handleIncomingCall);
-      socket.on('message', (data) => {
-        setMessage({ message: data, variant: 'R' });
-      });
-    }
-  }, [currentRoom]);
-
-  console.log('\n\nCheck socket listener end and declined:\n');
-  console.log(socket?.listeners('call:end'));
-  console.log(socket?.listeners('call:declined'));
 
   return (
     <>

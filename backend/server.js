@@ -37,12 +37,8 @@ mongoose
 const User = require('./models/userModel');
 
 io.use(async (socket, next) => {
-  console.log('Socket middleware used');
   const cookies = socket.handshake?.headers?.cookie;
   let token;
-
-  console.log('Socket got cookies as ', cookies);
-
   cookies?.split(';').forEach((element) => {
     element = element.trim();
     if (element.startsWith('jwt=')) {
@@ -52,12 +48,14 @@ io.use(async (socket, next) => {
   });
   if (!token) return;
   const decoded = decodeJWT(token);
-  const user = await User.findById(decoded.id);
-  if (decoded.id && user) {
-    socket.userId = decoded.id;
-    socket.userEmail = user.email;
-    socket.firstName = user.firstName;
-    next();
+  if (decoded.id) {
+    const user = await User.findById(decoded.id);
+    if (user) {
+      socket.userId = decoded.id;
+      socket.userEmail = user.email;
+      socket.firstName = user.firstName;
+      next();
+    }
   } else next(new Error('Authentication error'));
 });
 
