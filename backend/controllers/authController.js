@@ -12,14 +12,12 @@ const signJWT = (id, email) => {
 
 const verifyJWT = (req) => {
   const { jwt: token } = req.cookies;
-
   const decoded = decodeJWT(token);
   // FIXME : CHECK FOR TOKEN EXPIRY ALSO
   return { decoded };
 };
 
 exports.logout = async (req, res) => {
-  console.log('Hit the logout route');
   const cookieOptions = {
     expires: new Date(
       Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000
@@ -75,6 +73,7 @@ exports.login = async (req, res) => {
         ),
         secure: process.env.NODE_ENV === 'production',
         httpOnly: true,
+        sameSite: 'none',
       };
 
       return res
@@ -119,12 +118,15 @@ exports.login = async (req, res) => {
         });
     }
   } catch (err) {
+    res.status(500).json({
+      status: 'error',
+      message: 'Error in login',
+    });
     console.log('AT LOGIN ROUTE, ERROR : ', err);
   }
 };
 
 exports.isLoggedIn = async (req, res) => {
-  console.log('AT isLoggedIn ROUTE', req.cookies);
   try {
     const authToken = verifyJWT(req);
     if (authToken?.decoded?.error || !authToken.decoded) {
@@ -158,8 +160,11 @@ exports.isLoggedIn = async (req, res) => {
       });
     }
   } catch (err) {
-    console.log(err);
-    next(new AppError());
+    res.status(500).json({
+      status: 'error',
+      message: 'Something went wrong',
+    });
+    next(new AppError(err));
   }
 };
 

@@ -272,8 +272,6 @@ export default function Chats() {
           });
         }
       };
-      socket.removeAllListeners('call:answered');
-      socket.removeAllListeners('call:candidate');
       socket.removeAllListeners('call:end');
       socket.removeAllListeners('call:declined');
       socket.on('call:end', handleEndedCall);
@@ -285,23 +283,12 @@ export default function Chats() {
 
   useEffect(() => {
     if (socket) {
-      socket.removeAllListeners('call:incoming');
-      socket.removeAllListeners('message');
       socket.on('call:incoming', handleIncomingCall);
       socket.on('message', (data) => {
         setMessage({ message: data, variant: 'R' });
       });
     }
   }, [currentRoom]);
-
-  // useEffect(() => {
-  //   if (socket) {
-  //     socket.removeAllListeners('call:end');
-  //     socket.removeAllListeners('call:declined');
-  //     socket.on('call:end', handleEndedCall);
-  //     socket.on('call:declined', handleDeclinedCall);
-  //   }
-  // }, [peerConnection]);
 
   console.log('\n\nCheck socket listener end and declined:\n');
   console.log(socket?.listeners('call:end'));
