@@ -98,7 +98,8 @@ export default function Whiteboard() {
 
   const undoShapeHandler = () => {
     const shapeId = lastShapeId;
-    socket?.emit('whiteboard:undo', { roomId: currentRoom, shapeId });
+    if (socket)
+      socket.emit('whiteboard:undo', { roomId: currentRoom, shapeId });
     undoShape();
   };
 

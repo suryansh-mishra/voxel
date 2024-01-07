@@ -52,8 +52,6 @@ const useStore = create((set) => ({
         (shape) => shape.shapeId !== state.lastShapeId
       );
 
-      state.socket?.emit('undoShape', previousShapeId);
-
       return { lastShapeId: previousShapeId, shapes: filteredShapes };
     }),
 
@@ -84,8 +82,7 @@ const useStore = create((set) => ({
   setCurrentRoom: (val) => set(() => ({ currentRoom: val })),
   setCreatedRoomString: (val) => set(() => ({ createdRoomString: val })),
   setRemoteStream: (val) =>
-    set((state) => {
-      console.log('Remote stream available : ', val);
+    set(() => {
       return { remoteStream: val };
     }),
   setLocalStream: (val) => set(() => ({ localStream: val })),

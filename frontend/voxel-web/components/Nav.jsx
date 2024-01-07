@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import Link from 'next/link';
 import DarkModeToggle from './dark.mode.toggle';
+import NavListItem from './NavListItem';
+import NavListButton from './NavListButton';
 import { BiMenuAltRight } from 'react-icons/bi';
 import axios from 'axios';
 import useStore from '@/store/store';
@@ -11,36 +12,6 @@ import { useToast } from '@/components/ui/use-toast';
 import { endChatHelper } from '@/utils/controls/chatControls';
 import { endCallHelper } from '@/utils/controls/callControls';
 import { servers, mediaConstraints } from '@/utils/webrtc-config/constraints';
-
-function NavListItem({ children, href, className, onClick }) {
-  return (
-    <li>
-      <Link
-        href={href}
-        onClick={onClick}
-        className={`px-4 dark:text-zinc-300 text-zinc-700  cursor-pointer duration-100 
-        hover:bg-accent-light-faded  hover:text-accent-light-bright 
-        hover:dark:bg-accent-dark-faded hover:dark:text-accent-dark-bright p-1 rounded-full 
-        ease-in active:font-black ${className} `}
-      >
-        {children}
-      </Link>
-    </li>
-  );
-}
-
-function NavListButton({ children, onClick }) {
-  return (
-    <li>
-      <button
-        className="px-4 dark:text-zinc-300 text-zinc-700 cursor-pointer duration-75 hover:bg-red-600 hover:text-red-100 py-1 hover:bg-opacity-80 rounded-full ease-in"
-        onClick={onClick}
-      >
-        {children}
-      </button>
-    </li>
-  );
-}
 
 export default function Nav() {
   const [hamburgerOpen, setHamburgerOpen] = useState(false);

@@ -5,6 +5,8 @@ const cors = require('cors');
 const userRoutes = require('./routes/userRoutes');
 const errorController = require('./controllers/globalErrorController');
 const cookieParser = require('cookie-parser');
+const compression = require('compression');
+const helmet = require('helmet');
 
 app.use(compression());
 app.use(helmet());
