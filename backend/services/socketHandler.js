@@ -126,7 +126,6 @@ const socketHandler = (io, socket) => {
   socket.on('call:candidate', (data) => {
     const candidate = data.candidate;
     const roomId = data.roomId;
-    console.log('Candidate : ', roomId);
     const isValidRoom = Boolean(io.sockets.adapter.rooms?.get(roomId));
     if (!isValidRoom) return socket.emit('error', roomNotFoundMessage);
     const sockets = [...io.sockets.adapter.rooms?.get(roomId)];
@@ -134,6 +133,7 @@ const socketHandler = (io, socket) => {
     socket.to(recepient).emit('call:candidate', {
       candidate: candidate,
     });
+    console.log('Candidate ', candidate, '\nto: ', recepient);
   });
 
   socket.on('call:end', (data) => {

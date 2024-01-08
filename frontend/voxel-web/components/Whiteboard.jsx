@@ -50,7 +50,6 @@ export default function Whiteboard() {
     state.lastShapeId,
     state.setLastShapeId,
   ]);
-  const state = useStore((state) => state);
 
   const strokeWidthRC = 2; // UPGRADE STROKE WIDTH SETTING TO CUSTOM
 
@@ -375,9 +374,6 @@ export default function Whiteboard() {
       };
     }
   }, [canvasRef, canvasContainerRef, whiteboardVisible]);
-
-  console.log('LAST SHAPE ID: ', lastShapeId);
-  console.log('SHAPES : ', shapes);
 
   return (
     whiteboardVisible &&

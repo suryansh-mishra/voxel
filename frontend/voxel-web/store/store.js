@@ -76,10 +76,7 @@ const useStore = create((set) => ({
   setPeerConnection: (val) => set(() => ({ peerConnection: val })),
   setCurrentRoom: (val) => set(() => ({ currentRoom: val })),
   setCreatedRoomString: (val) => set(() => ({ createdRoomString: val })),
-  setRemoteStream: (val) =>
-    set((state) => {
-      return { remoteStream: val };
-    }),
+  setRemoteStream: (val) => set(() => ({ remoteStream: val })),
   setLocalStream: (val) => set(() => ({ localStream: val })),
   setInCall: (val) => set(() => ({ inCall: val })),
   setVideoCallVisible: (val) => set(() => ({ videoCallVisible: val })),

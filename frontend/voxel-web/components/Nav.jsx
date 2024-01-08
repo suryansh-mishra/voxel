@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Image from 'next/image';
 import DarkModeToggle from './dark.mode.toggle';
 import NavListItem from './NavListItem';
@@ -93,27 +93,36 @@ export default function Nav() {
     setVideoCallVisible(true);
   };
 
-  const handleAnsweredCall = (data) => {
-    const answer = data.message.data.answer;
-    const answerDescription = new RTCSessionDescription(answer);
-    peerConnection.setRemoteDescription(answerDescription);
-    toast({ title: 'Call connected' });
-    setInCall(true);
-    setVideoCallVisible(true);
-  };
+  const handleAnsweredCall = useCallback(
+    (data) => {
+      const answer = data.message.data.answer;
+      const answerDescription = new RTCSessionDescription(answer);
+      peerConnection.setRemoteDescription(answerDescription);
+      toast({ title: 'Call connected' });
+      setInCall(true);
+      setVideoCallVisible(true);
+    },
+    [peerConnection]
+  );
 
-  const handleIceCandidates = (data) => {
-    const candidate = new RTCIceCandidate(data.candidate);
-    peerConnection
-      .addIceCandidate(candidate)
-      .then(() => {
-        console.log('Successfully added ICE Candidates by getting from socket');
-      })
-      .catch((error) => {
-        toast({ title: 'WebRTC - ICE Issues in call establishment' });
-        console.error('Error adding ICE candidate:', error);
-      });
-  };
+  const handleIceCandidates = useCallback(
+    (data) => {
+      const candidate = new RTCIceCandidate(data.candidate);
+      console.log('Received ICE candidates.');
+      peerConnection
+        .addIceCandidate(candidate)
+        .then(() => {
+          console.log(
+            'Successfully added ICE Candidates by getting from socket'
+          );
+        })
+        .catch((error) => {
+          toast({ title: 'WebRTC - ICE Issues in call establishment' });
+          console.error('Error adding ICE candidate:', error);
+        });
+    },
+    [peerConnection]
+  );
 
   const handleRoomJoined = (data) => {
     emptyShapes();
@@ -162,7 +171,7 @@ export default function Nav() {
         socket.off('error');
       };
     }
-  }, [socket, shapes, messages]);
+  }, [socket, shapes]);
 
   useEffect(() => {
     if (currentRoom) {
@@ -180,38 +189,51 @@ export default function Nav() {
 
   useEffect(() => {
     if (peerConnection) {
-      if (!peerConnection.ontrack)
-        peerConnection.ontrack = (event) => {
-          if (event) {
-            const newStream = new MediaStream();
-            event.streams[0].getTracks().forEach((track) => {
-              newStream.addTrack(track);
-            });
-            setRemoteStream(newStream);
-          }
-        };
-      if (!peerConnection.onicecandidate)
-        peerConnection.onicecandidate = (event) => {
-          if (event.candidate) {
-            socket.emit('call:candidate', {
-              roomId: currentRoom,
-              candidate: event.candidate,
-            });
-          }
-        };
+      peerConnection.ontrack = (event) => {
+        if (event) {
+          console.log('Remote tracks received.');
+          const newStream = new MediaStream();
+          event.streams[0].getTracks().forEach((track) => {
+            newStream.addTrack(track);
+          });
+          setRemoteStream(newStream);
+        }
+      };
+
+      peerConnection.onicecandidate = (event) => {
+        console.log('Gathered ICE Candidates.');
+        if (event.candidate) {
+          socket.emit('call:candidate', {
+            roomId: currentRoom,
+            candidate: event.candidate,
+          });
+        }
+      };
+    }
+  }, [peerConnection]);
+
+  useEffect(() => {
+    if (peerConnection) {
       socket.on('call:end', handleEndedCall);
       socket.on('call:declined', handleDeclinedCall);
-      socket.on('call:answered', handleAnsweredCall);
-      socket.on('call:candidate', handleIceCandidates);
 
       return () => {
         socket.off('call:end', handleEndedCall);
         socket.off('call:declined', handleDeclinedCall);
+      };
+    }
+  }, [peerConnection, currentRoom]);
+
+  useEffect(() => {
+    if (peerConnection) {
+      socket.on('call:answered', handleAnsweredCall);
+      socket.on('call:candidate', handleIceCandidates);
+      return () => {
         socket.off('call:answered', handleAnsweredCall);
         socket.off('call:candidate', handleIceCandidates);
       };
     }
-  }, [peerConnection, currentRoom]);
+  }, [peerConnection, handleAnsweredCall, handleIceCandidates]);
 
   return (
     <div className="container justify-between md:justify-between flex h-14 md:h-20 md:px-14 items-center backdrop-blur-lg sticky top-0">
