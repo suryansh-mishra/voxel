@@ -13,11 +13,14 @@ const getSocketsInRoom = (io, roomId) => {
   return isValidRoom ? [...io.sockets.adapter.rooms?.get(roomId)] : [];
 };
 
-const sendOthersInRoom = (io, socket, roomId) => {
+const sendOthersInRoom = (io, socket, eventName, data, roomId) => {
   const sockets = getSocketsInRoom(io, roomId);
   if (!sockets) socket.emit('error', roomNotFoundMessage);
   sockets.forEach((socketId) => {
-    if (socketId !== socket.id) io.to(socketId).emit('message', data.message);
+    if (socketId !== socket.id) {
+      if (data) io.to(socketId).emit(eventName, data);
+      else io.to(socketId).emit(eventName);
+    }
   });
 };
 
@@ -56,22 +59,22 @@ const socketHandler = (io, socket) => {
 
   socket.on('message', async (data) => {
     const roomId = data.roomId;
-    sendOthersInRoom(io, socket, roomId);
+    sendOthersInRoom(io, socket, 'message', data.message, roomId);
   });
 
   socket.on('whiteboard:shape', async (data) => {
     const roomId = data.roomId;
-    sendOthersInRoom(io, socket, roomId);
+    sendOthersInRoom(io, socket, 'whiteboard:shape', data.shape, roomId);
   });
 
   socket.on('whiteboard:undo', async (data) => {
     const roomId = data.roomId;
-    sendOthersInRoom(io, socket, roomId);
+    sendOthersInRoom(io, socket, 'whiteboard:undo', data.shapeId, roomId);
   });
 
   socket.on('whiteboard:clear', async (data) => {
     const roomId = data.roomId;
-    sendOthersInRoom(io, socket, roomId);
+    sendOthersInRoom(io, socket, 'whiteboard:clear', null, roomId);
   });
 
   socket.on('call:offer', async (data) => {
