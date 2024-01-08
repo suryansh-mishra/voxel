@@ -37,7 +37,9 @@ export default function Nav() {
   const setRemoteStream = useStore((state) => state.setRemoteStream);
   const emptyMessages = useStore((state) => state.emptyMessages);
   const emptyShapes = useStore((state) => state.emptyShapes);
-
+  const setCurrentRoomUserCount = useStore(
+    (state) => state.setCurrentRoomUserCount
+  );
   const toggleHamburger = () => {
     setHamburgerOpen(!hamburgerOpen);
   };
@@ -140,7 +142,7 @@ export default function Nav() {
       socket.on('room:usercount', setCurrentRoomUserCount);
 
       socket.on('whiteboard:shape', (data) => setShapes(data));
-      socket.on('whiteboard:undo', (data) => removeShape(data.shapeId));
+      socket.on('whiteboard:undo', (shapeId) => removeShape(shapeId));
       socket.on('whiteboard:clear', emptyShapes);
 
       socket.on('error', (data) => {
@@ -240,7 +242,7 @@ export default function Nav() {
           </button>
           {hamburgerOpen && (
             <nav
-              className={`absolute mt-2 right-0 border dark:border-zinc-700 border-zinc-200 rounded-lg backdrop-brightness-0`}
+              className={`absolute mt-2 right-0 border dark:border-zinc-700 border-zinc-200 rounded-lg bg-white dark:bg-zinc-950`}
             >
               <ul className="px-1 py-1 flex flex-col text-sm">
                 <NavListItem

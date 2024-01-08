@@ -82,7 +82,7 @@ const socketHandler = (io, socket) => {
           description: 'The room was not correctly found',
         },
       });
-    const sockets = [...io.sockets.adapter.rooms?.get(roomId)];
+    const sockets = [...io.sockets.adapter.rooms.get(roomId)];
     sockets.forEach((socketId) => {
       if (socketId !== socket.id)
         io.to(socketId).emit('whiteboard:undo', data.shapeId);

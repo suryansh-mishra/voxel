@@ -10,6 +10,7 @@ import { MdOutlineRectangle, MdOutlineUndo } from 'react-icons/md';
 import { FaRegCircle } from 'react-icons/fa';
 import { PiLineSegmentFill } from 'react-icons/pi';
 import { IoSave } from 'react-icons/io5';
+import { getNextShapeId } from '@/utils/whiteboard/helpers';
 
 /**
  * ERASER FUNCTIONALITY MISSING
@@ -36,6 +37,7 @@ export default function Whiteboard() {
     emptyShapes,
     undoShape,
     lastShapeId,
+    setLastShapeId,
   ] = useStore((state) => [
     state.whiteboardVisible,
     state.setWhiteboardVisible,
@@ -46,7 +48,9 @@ export default function Whiteboard() {
     state.emptyShapes,
     state.undoShape,
     state.lastShapeId,
+    state.setLastShapeId,
   ]);
+  const state = useStore((state) => state);
 
   const strokeWidthRC = 2; // UPGRADE STROKE WIDTH SETTING TO CUSTOM
 
@@ -65,7 +69,7 @@ export default function Whiteboard() {
   const tool = useRef(TOOL_TYPES.PEN);
   const path = useRef('');
   const mouseDownPosition = useRef({ x: 0, y: 0 });
-
+  const lastShapeIdRef = useRef(lastShapeId);
   const ctx = canvasRef.current?.getContext('2d');
 
   const handleCloseWhiteboard = () => setWhiteboardVisible(false);
@@ -98,9 +102,10 @@ export default function Whiteboard() {
 
   const undoShapeHandler = () => {
     const shapeId = lastShapeId;
-    if (socket)
-      socket.emit('whiteboard:undo', { roomId: currentRoom, shapeId });
-    undoShape();
+    if (shapeId) {
+      socket?.emit('whiteboard:undo', { roomId: currentRoom, shapeId });
+      undoShape();
+    }
   };
 
   const drawShapes = () => {
@@ -296,8 +301,10 @@ export default function Whiteboard() {
 
         break;
     }
-    socket?.emit('whiteboard:shape', { roomId: currentRoom, shape });
+    shape.shapeId = getNextShapeId(lastShapeIdRef);
+    setLastShapeId(shape.shapeId);
     setShapes(shape);
+    socket?.emit('whiteboard:shape', { roomId: currentRoom, shape });
   };
 
   useEffect(() => {
@@ -318,6 +325,10 @@ export default function Whiteboard() {
       ctx.shadowBlur = 1;
     }
   }, [ctx]);
+
+  useEffect(() => {
+    if (lastShapeId) lastShapeIdRef.current = lastShapeId;
+  }, [lastShapeId]);
 
   useEffect(() => {
     if (ctx && color.current) {
@@ -364,6 +375,9 @@ export default function Whiteboard() {
       };
     }
   }, [canvasRef, canvasContainerRef, whiteboardVisible]);
+
+  console.log('LAST SHAPE ID: ', lastShapeId);
+  console.log('SHAPES : ', shapes);
 
   return (
     whiteboardVisible &&
@@ -432,7 +446,7 @@ export default function Whiteboard() {
             variant="whiteboard"
             size="icon"
             className="mt-2 bg-white/80 hover:bg-white/90 rotate-45"
-            disabled={shapes.length === 0}
+            disabled={shapes.length === 0 || !lastShapeId}
             onClick={undoShapeHandler}
           >
             <MdOutlineUndo />

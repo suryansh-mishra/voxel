@@ -24,17 +24,12 @@ const useStore = create((set) => ({
   shapes: [],
   lastShapeId: null,
 
+  setLastShapeId: (val) => set((state) => ({ lastShapeId: val })),
   setCurrentRoomUserCount: (val) => set(() => ({ currentRoomUserCount: val })),
+
   setShapes: (val) =>
     set((state) => {
-      let shapeId = '';
-      if (state.lastShapeId)
-        shapeId = `shape_${state.lastShapeId.split('_')[1]}_${
-          Number(state.lastShapeId.split('_')[2]) + 1
-        }`;
-      else shapeId = `shape_${String(Date.now()).slice(5)}_0`;
-      val.shapeId = shapeId;
-      return { lastShapeId: shapeId, shapes: [...state.shapes, val] };
+      return { shapes: [...state.shapes, val] };
     }),
 
   emptyShapes: () => set(() => ({ shapes: [] })),
@@ -51,12 +46,12 @@ const useStore = create((set) => ({
       const filteredShapes = state.shapes.filter(
         (shape) => shape.shapeId !== state.lastShapeId
       );
-
       return { lastShapeId: previousShapeId, shapes: filteredShapes };
     }),
 
   removeShape: (shapeId) =>
     set((state) => {
+      console.log('REMOVE SHAPE CALLED WITH SHAPEID', shapeId);
       const filteredShapes = state.shapes.filter(
         (shape) => shape.shapeId !== shapeId
       );
@@ -82,7 +77,7 @@ const useStore = create((set) => ({
   setCurrentRoom: (val) => set(() => ({ currentRoom: val })),
   setCreatedRoomString: (val) => set(() => ({ createdRoomString: val })),
   setRemoteStream: (val) =>
-    set(() => {
+    set((state) => {
       return { remoteStream: val };
     }),
   setLocalStream: (val) => set(() => ({ localStream: val })),
