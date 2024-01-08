@@ -8,13 +8,13 @@ const roomNotFoundMessage = {
   },
 };
 
-const getSocketsInRoom = (roomId) => {
+const getSocketsInRoom = (io, roomId) => {
   const isValidRoom = Boolean(io.sockets.adapter.rooms?.get(roomId));
   return isValidRoom ? [...io.sockets.adapter.rooms?.get(roomId)] : [];
 };
 
-const sendOthersInRoom = (roomId, socket) => {
-  const sockets = getSocketsInRoom(roomId);
+const sendOthersInRoom = (io, socket, roomId) => {
+  const sockets = getSocketsInRoom(io, roomId);
   if (!sockets) socket.emit('error', roomNotFoundMessage);
   sockets.forEach((socketId) => {
     if (socketId !== socket.id) io.to(socketId).emit('message', data.message);
@@ -22,10 +22,6 @@ const sendOthersInRoom = (roomId, socket) => {
 };
 
 const socketHandler = (io, socket) => {
-  if (!io)
-    return socket?.emit('error', {
-      message: 'Socket not connected',
-    });
   console.log('Socket Connected', socket.id);
 
   socket.on('room:create', async () => {
@@ -60,22 +56,22 @@ const socketHandler = (io, socket) => {
 
   socket.on('message', async (data) => {
     const roomId = data.roomId;
-    sendOthersInRoom(roomId, socket);
+    sendOthersInRoom(io, socket, roomId);
   });
 
   socket.on('whiteboard:shape', async (data) => {
     const roomId = data.roomId;
-    sendOthersInRoom(roomId, socket);
+    sendOthersInRoom(io, socket, roomId);
   });
 
   socket.on('whiteboard:undo', async (data) => {
     const roomId = data.roomId;
-    sendOthersInRoom(roomId, socket);
+    sendOthersInRoom(io, socket, roomId);
   });
 
   socket.on('whiteboard:clear', async (data) => {
     const roomId = data.roomId;
-    sendOthersInRoom(roomId, socket);
+    sendOthersInRoom(io, socket, roomId);
   });
 
   socket.on('call:offer', async (data) => {
