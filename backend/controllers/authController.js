@@ -10,7 +10,7 @@ const cookieOptions = {
   ),
   secure: process.env.NODE_ENV === 'production',
   httpOnly: true,
-  sameSite: process.env.production ? 'none' : 'strict',
+  sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
 };
 
 const signJWT = (id, email) => {
