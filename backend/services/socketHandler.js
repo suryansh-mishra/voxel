@@ -22,6 +22,10 @@ const sendOthersInRoom = (roomId, socket) => {
 };
 
 const socketHandler = (io, socket) => {
+  if (!io)
+    return socket.emit('error', {
+      message: 'Socket not connected',
+    });
   console.log('Socket Connected', socket.id);
 
   socket.on('room:create', async () => {
