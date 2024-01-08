@@ -65,6 +65,7 @@ export default function Nav() {
   };
 
   const handleIncomingCall = async (data) => {
+    console.log('HANDLE INCOMING CALL RAN.');
     const stream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
     if (!stream)
       return toast({
@@ -108,13 +109,11 @@ export default function Nav() {
   const handleIceCandidates = useCallback(
     (data) => {
       const candidate = new RTCIceCandidate(data.candidate);
-      console.log('Received ICE candidates.');
+      console.log('Received ICE candidates // SOCKET.');
       peerConnection
         .addIceCandidate(candidate)
         .then(() => {
-          console.log(
-            'Successfully added ICE Candidates by getting from socket'
-          );
+          console.log('Success : Adding ICE Candidates // SOCKET.');
         })
         .catch((error) => {
           toast({ title: 'WebRTC - ICE Issues in call establishment' });
@@ -189,6 +188,7 @@ export default function Nav() {
 
   useEffect(() => {
     if (peerConnection) {
+      console.log('PEER CONNECTION ON TRACK AND ICE CANDIDATE USE EFFECT RAN');
       peerConnection.ontrack = (event) => {
         if (event) {
           console.log('Remote tracks received.');
@@ -201,7 +201,7 @@ export default function Nav() {
       };
 
       peerConnection.onicecandidate = (event) => {
-        console.log('Gathered ICE Candidates.');
+        console.log('PEER CONNECTION GENERATED ICE CANDIDATES');
         if (event.candidate) {
           socket.emit('call:candidate', {
             roomId: currentRoom,
@@ -211,6 +211,13 @@ export default function Nav() {
       };
     }
   }, [peerConnection]);
+
+  useEffect(() => {
+    console.log(
+      'PEER CONNECTION ICE CONNECTION STATE CHANGED : ',
+      peerConnection?.iceConnectionState
+    );
+  }, [peerConnection?.iceConnectionState]);
 
   useEffect(() => {
     if (peerConnection) {
