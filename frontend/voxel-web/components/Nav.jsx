@@ -11,7 +11,7 @@ import useStore from '@/store/store';
 import { useToast } from '@/components/ui/use-toast';
 import { endChatHelper } from '@/utils/controls/chatControls';
 import { endCallHelper } from '@/utils/controls/callControls';
-import { servers, mediaConstraints } from '@/utils/webrtc-config/constraints';
+import { mediaConstraints } from '@/utils/webrtc-config/constraints';
 
 export default function Nav() {
   const [hamburgerOpen, setHamburgerOpen] = useState(false);

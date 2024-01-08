@@ -1,12 +1,29 @@
-export const servers = {
-  iceServers: [
-    { urls: ['stun:stun1.l.google.com:19302'] },
+export const getIceServers = () => {
+  const iceServers = [
+    { urls: 'stun:stun.relay.metered.ca:80' },
     {
-      url: 'turn:numb.viagenie.ca',
-      credential: 'muazkh',
-      username: 'webrtc@live.com',
+      urls: 'turn:standard.relay.metered.ca:80',
+      username: '7fc8c025d4bb0e41c86114b4',
+      credential: 'ayA5rzDQn2OFfWVB',
     },
-  ],
+    {
+      urls: 'turn:standard.relay.metered.ca:80?transport=tcp',
+      username: '7fc8c025d4bb0e41c86114b4',
+      credential: 'ayA5rzDQn2OFfWVB',
+    },
+    {
+      urls: 'turn:standard.relay.metered.ca:443',
+      username: '7fc8c025d4bb0e41c86114b4',
+      credential: 'ayA5rzDQn2OFfWVB',
+    },
+    {
+      urls: 'turn:standard.relay.metered.ca:443?transport=tcp',
+      username: '7fc8c025d4bb0e41c86114b4',
+      credential: 'ayA5rzDQn2OFfWVB',
+    },
+  ];
+
+  return { iceServers };
 };
 
 export const mediaConstraints = { video: true, audio: true };

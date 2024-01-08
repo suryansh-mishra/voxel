@@ -18,7 +18,10 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
 import { endCallHelper } from '@/utils/controls/callControls';
 import { endChatHelper } from '@/utils/controls/chatControls';
-import { servers, mediaConstraints } from '@/utils/webrtc-config/constraints';
+import {
+  mediaConstraints,
+  getIceServers,
+} from '@/utils/webrtc-config/constraints';
 
 function MessageBox({ variant, content }) {
   return (
@@ -94,7 +97,8 @@ export default function Chats() {
   };
 
   const createOffer = async () => {
-    const pc = new RTCPeerConnection(servers);
+    console.log('Creating offer with servers : ', getIceServers());
+    const pc = new RTCPeerConnection(getIceServers());
     const stream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
     setLocalStream(stream);
     if (!stream)

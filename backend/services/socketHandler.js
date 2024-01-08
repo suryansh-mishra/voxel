@@ -1,6 +1,26 @@
 const roomController = require('../controllers/socketControllers/roomController');
 const chalk = require('chalk');
 
+const roomNotFoundMessage = {
+  message: {
+    title: 'Something went wrong',
+    description: 'The room was not correctly found',
+  },
+};
+
+const getSocketsInRoom = (roomId) => {
+  const isValidRoom = Boolean(io.sockets.adapter.rooms?.get(roomId));
+  return isValidRoom ? [...io.sockets.adapter.rooms?.get(roomId)] : [];
+};
+
+const sendOthersInRoom = (roomId, socket) => {
+  const sockets = getSocketsInRoom(roomId);
+  if (!sockets) socket.emit('error', roomNotFoundMessage);
+  sockets.forEach((socketId) => {
+    if (socketId !== socket.id) io.to(socketId).emit('message', data.message);
+  });
+};
+
 const socketHandler = (io, socket) => {
   console.log('Socket Connected', socket.id);
 
@@ -12,6 +32,7 @@ const socketHandler = (io, socket) => {
   });
 
   socket.on('room:join', async (roomId) => {
+    // FIXME : JOINING LOGIC NEEDS TO BE BETTER
     let resp;
     try {
       resp = await roomController.joinRoom(socket, roomId);
@@ -29,93 +50,35 @@ const socketHandler = (io, socket) => {
   socket.on('room:leave', async (data) => {
     const roomId = data.roomId;
     const isValidRoom = Boolean(io.sockets.adapter.rooms?.get(roomId));
-    if (!isValidRoom)
-      return socket.emit('error', {
-        message: {
-          title: 'Something went wrong',
-          description: 'The room was not correctly found',
-        },
-      });
+    if (!isValidRoom) return socket.emit('error', roomNotFoundMessage);
     if (roomId) socket.leave(roomId);
   });
 
   socket.on('message', async (data) => {
     const roomId = data.roomId;
-    const isValidRoom = Boolean(io.sockets.adapter.rooms?.get(roomId));
-    if (!isValidRoom)
-      return socket.emit('error', {
-        message: {
-          title: 'Something went wrong',
-          description: 'The room was not correctly found',
-        },
-      });
-    const sockets = [...io.sockets.adapter.rooms?.get(roomId)];
-    sockets.forEach((socketId) => {
-      if (socketId !== socket.id) io.to(socketId).emit('message', data.message);
-    });
+    sendOthersInRoom(roomId, socket);
   });
 
   socket.on('whiteboard:shape', async (data) => {
     const roomId = data.roomId;
-    const isValidRoom = Boolean(io.sockets.adapter.rooms?.get(roomId));
-    if (!isValidRoom)
-      return socket.emit('error', {
-        message: {
-          title: 'Something went wrong',
-          description: 'The room was not correctly found',
-        },
-      });
-    const sockets = [...io.sockets.adapter.rooms?.get(roomId)];
-    sockets.forEach((socketId) => {
-      if (socketId !== socket.id)
-        io.to(socketId).emit('whiteboard:shape', data.shape);
-    });
+    sendOthersInRoom(roomId, socket);
   });
 
   socket.on('whiteboard:undo', async (data) => {
     const roomId = data.roomId;
-    const isValidRoom = Boolean(io.sockets.adapter.rooms?.get(roomId));
-    if (!isValidRoom)
-      return socket.emit('error', {
-        message: {
-          title: 'Something went wrong',
-          description: 'The room was not correctly found',
-        },
-      });
-    const sockets = [...io.sockets.adapter.rooms.get(roomId)];
-    sockets.forEach((socketId) => {
-      if (socketId !== socket.id)
-        io.to(socketId).emit('whiteboard:undo', data.shapeId);
-    });
+    sendOthersInRoom(roomId, socket);
   });
 
   socket.on('whiteboard:clear', async (data) => {
     const roomId = data.roomId;
-    const isValidRoom = Boolean(io.sockets.adapter.rooms?.get(roomId));
-    if (!isValidRoom)
-      return socket.emit('error', {
-        message: {
-          title: 'Something went wrong',
-          description: 'The room was not correctly found',
-        },
-      });
-    const sockets = [...io.sockets.adapter.rooms?.get(roomId)];
-    sockets.forEach((socketId) => {
-      if (socketId !== socket.id) io.to(socketId).emit('whiteboard:clear');
-    });
+    sendOthersInRoom(roomId, socket);
   });
 
   socket.on('call:offer', async (data) => {
     const roomId = data.roomId;
     const offer = data.offer;
     const isValidRoom = Boolean(io.sockets.adapter.rooms?.get(roomId));
-    if (!isValidRoom)
-      return socket.emit('error', {
-        message: {
-          title: 'Something went wrong',
-          description: 'The room was not correctly found',
-        },
-      });
+    if (!isValidRoom) return socket.emit('error', roomNotFoundMessage);
 
     const sockets = [...io.sockets.adapter.rooms?.get(roomId)];
     if (sockets.length < 2)
@@ -147,13 +110,7 @@ const socketHandler = (io, socket) => {
     const roomId = data.roomId;
     console.log('Answer : ', roomId);
     const isValidRoom = Boolean(io.sockets.adapter.rooms?.get(roomId));
-    if (!isValidRoom)
-      return socket.emit('error', {
-        message: {
-          title: 'Something went wrong',
-          description: 'The room was not correctly found',
-        },
-      });
+    if (!isValidRoom) return socket.emit('error', roomNotFoundMessage);
     const sockets = [...io.sockets.adapter.rooms?.get(roomId)];
     const caller = sockets[0] === socket.id ? sockets[1] : sockets[0];
     socket.to(caller).emit('call:answered', {
@@ -171,13 +128,7 @@ const socketHandler = (io, socket) => {
     const roomId = data.roomId;
     console.log('Candidate : ', roomId);
     const isValidRoom = Boolean(io.sockets.adapter.rooms?.get(roomId));
-    if (!isValidRoom)
-      return socket.emit('error', {
-        message: {
-          title: 'Something went wrong',
-          description: 'The room was not correctly found',
-        },
-      });
+    if (!isValidRoom) return socket.emit('error', roomNotFoundMessage);
     const sockets = [...io.sockets.adapter.rooms?.get(roomId)];
     const recepient = sockets[0] === socket.id ? sockets[1] : sockets[0];
     socket.to(recepient).emit('call:candidate', {
