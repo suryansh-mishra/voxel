@@ -100,15 +100,14 @@ export default function Chats() {
     console.log('Creating offer with servers : ', getIceServers());
     const pc = new RTCPeerConnection(getIceServers());
     const stream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
-    setLocalStream(stream);
     if (!stream)
       return toast({
         title: 'Media not available',
         description: 'A/V devices permission not available for call',
       });
     setPeerConnection(pc);
-    const tracks = stream.getTracks();
-    tracks.forEach((track) => {
+    setLocalStream(stream);
+    stream.getTracks().forEach((track) => {
       pc.addTrack(track, stream);
     });
     const offer = await pc.createOffer();

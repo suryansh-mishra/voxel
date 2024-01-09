@@ -8,13 +8,21 @@ import { Button } from './ui/button';
 import { PiPhoneDisconnectFill } from 'react-icons/pi';
 import { FaVideo, FaVideoSlash } from 'react-icons/fa';
 import { IoMdMic, IoMdMicOff } from 'react-icons/io';
-import { toggleAudio, toggleVideo } from '@/utils/controls/callControls';
+import {
+  endCallHelper,
+  toggleAudio,
+  toggleVideo,
+} from '@/utils/controls/callControls';
 
 export default function ChatScreen() {
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const isAudioOn = useStore((state) => state.isAudioOn);
   const isVideoOn = useStore((state) => state.isVideoOn);
+
+  const state = useStore((state) => state);
+  const socket = useStore((state) => state.socket);
+  const currentRoom = useStore((state) => state.currentRoom);
 
   const localStream = useStore((state) => state.localStream);
   const remoteStream = useStore((state) => state.remoteStream);
@@ -47,6 +55,12 @@ export default function ChatScreen() {
     setIsVideoOn(!isVideoOn);
     toggleVideo(localStream);
   };
+
+  const endCall = () => {
+    socket.emit('call:end', currentRoom);
+    endCallHelper(state);
+  };
+
   return (
     <>
       {videoCallVisible && (
@@ -87,6 +101,7 @@ export default function ChatScreen() {
               variant="custom"
               size="icon"
               className="bg-red-500 hover:bg-red-700"
+              onClick={endCall}
             >
               <PiPhoneDisconnectFill className="text-lg" />
             </Button>
