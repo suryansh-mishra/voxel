@@ -185,7 +185,7 @@ export default function Nav() {
   }, [currentRoom]);
   const handleIncomingTracks = async (event) => {
     const [rStream] = event.streams;
-    console.log('Remote track received as ', rStream);
+    toast({ title: 'Received remote tracks' });
     setRemoteStream(rStream);
   };
   const handleGeneratedIceCandidates = (event) => {

@@ -107,11 +107,12 @@ export default function Chats() {
       });
     setPeerConnection(pc);
     setLocalStream(stream);
-    stream.getTracks().forEach((track) => {
+    tracks = stream.getTracks();
+    tracks.forEach((track) => {
       pc.addTrack(track, stream);
     });
     const offer = await pc.createOffer();
-    if (stream)
+    if (tracks)
       pc.setLocalDescription(offer).then(() => {
         socket.emit('call:offer', { roomId: currentRoom, offer });
       });

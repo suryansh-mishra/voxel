@@ -141,7 +141,8 @@ const socketHandler = (io, socket) => {
 
   socket.on('call:end', (data) => {
     const roomId = data.roomId;
-    const sockets = [...io.sockets.adapter.rooms?.get(roomId)];
+
+    const sockets = getSocketsInRoom(io, roomId);
     const recepient = sockets[0] === socket.id ? sockets[1] : sockets[0];
     socket.to(recepient).emit('call:end');
   });
