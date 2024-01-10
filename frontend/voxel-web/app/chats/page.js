@@ -23,6 +23,11 @@ import {
   getIceServers,
 } from '@/utils/webrtc-config/constraints';
 
+import {
+  handleGeneratedIceCandidates,
+  handleIncomingTracks,
+} from '@/utils/webrtc-config/helpers';
+
 function MessageBox({ variant, content }) {
   return (
     <div
@@ -52,7 +57,7 @@ export default function Chats() {
   const setPeerConnection = useStore((state) => state.setPeerConnection);
   const setLocalStream = useStore((state) => state.setLocalStream);
   const setMessage = useStore((state) => state.setMessage);
-
+  const setRemoteStream = useStore((state) => state.setRemoteStream);
   const copyToClipboard = async (e) => {
     if (e) e.preventDefault();
     try {
@@ -105,17 +110,18 @@ export default function Chats() {
         title: 'Media not available',
         description: 'A/V devices permission not available for call',
       });
-    setPeerConnection(pc);
-    setLocalStream(stream);
-    const tracks = stream.getTracks();
-    tracks.forEach((track) => {
+    pc.addEventListener('track', handleIncomingTracks(setRemoteStream));
+    pc.addEventListener('icecandidate', handleGeneratedIceCandidates(state));
+    stream.getTracks().forEach((track) => {
       pc.addTrack(track, stream);
     });
     const offer = await pc.createOffer();
-    if (tracks)
+    if (stream)
       pc.setLocalDescription(offer).then(() => {
         socket.emit('call:offer', { roomId: currentRoom, offer });
       });
+    setLocalStream(stream);
+    setPeerConnection(pc);
   };
 
   const sendMessage = () => {

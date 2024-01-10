@@ -12,6 +12,10 @@ import { useToast } from '@/components/ui/use-toast';
 import { endChatHelper } from '@/utils/controls/chatControls';
 import { endCallHelper } from '@/utils/controls/callControls';
 import { mediaConstraints } from '@/utils/webrtc-config/constraints';
+import {
+  handleGeneratedIceCandidates,
+  handleIncomingTracks,
+} from '@/utils/webrtc-config/helpers';
 
 export default function Nav() {
   const [hamburgerOpen, setHamburgerOpen] = useState(false);
@@ -36,6 +40,7 @@ export default function Nav() {
   const setRemoteStream = useStore((state) => state.setRemoteStream);
   const emptyMessages = useStore((state) => state.emptyMessages);
   const emptyShapes = useStore((state) => state.emptyShapes);
+
   const setCurrentRoomUserCount = useStore(
     (state) => state.setCurrentRoomUserCount
   );
@@ -72,14 +77,15 @@ export default function Nav() {
         description: 'A/V devices permission not available for call',
       });
 
-    setLocalStream(stream);
     const pc = new RTCPeerConnection();
-    const offer = data.message.data.offer;
-    const offerDescription = new RTCSessionDescription(offer);
-    await pc.setRemoteDescription(offerDescription);
+    pc.addEventListener('track', handleIncomingTracks(setRemoteStream));
+    pc.addEventListener('icecandidate', handleGeneratedIceCandidates(state));
     stream.getTracks().forEach((track) => {
       pc.addTrack(track, stream);
     });
+    const offer = data.message.data.offer;
+    const offerDescription = new RTCSessionDescription(offer);
+    await pc.setRemoteDescription(offerDescription);
     const answer = await pc.createAnswer();
     if (answer) {
       await pc.setLocalDescription(answer);
@@ -87,6 +93,7 @@ export default function Nav() {
         roomId: currentRoom,
         answer,
       });
+      setLocalStream(stream);
       setPeerConnection(pc);
       setInCall(true);
       setVideoCallVisible(true); // Note : Move video call visible to when ICE connected ?
@@ -183,47 +190,6 @@ export default function Nav() {
       };
     }
   }, [currentRoom]);
-  const handleIncomingTracks = async (event) => {
-    const [rStream] = event.streams;
-    toast({ title: 'Received remote tracks' });
-    setRemoteStream(rStream);
-  };
-  const handleGeneratedIceCandidates = (event) => {
-    if (event.candidate)
-      socket.emit('call:candidate', {
-        roomId: currentRoom,
-        candidate: event.candidate,
-      });
-  };
-
-  useEffect(() => {
-    if (peerConnection) {
-      peerConnection.addEventListener('track', handleIncomingTracks);
-      // console.log('PEER CONNECTION ON TRACK AND ICE CANDIDATE USE EFFECT RAN');
-      // peerConnection.ontrack = (event) => {
-      //   if (event) {
-      //     console.log('Remote tracks received.');
-      //     const newStream = new MediaStream();
-      //     event.streams[0].getTracks().forEach((track) => {
-      //       newStream.addTrack(track);
-      //     });
-      //     setRemoteStream(newStream);
-      //   }
-      // };
-
-      peerConnection.addEventListener(
-        'icecandidate',
-        handleGeneratedIceCandidates
-      );
-      return () => {
-        peerConnection.removeEventListener('track', handleIncomingTracks);
-        peerConnection.removeEventListener(
-          'icecandidate',
-          handleGeneratedIceCandidates
-        );
-      };
-    }
-  }, [peerConnection]);
 
   useEffect(() => {
     console.log(
