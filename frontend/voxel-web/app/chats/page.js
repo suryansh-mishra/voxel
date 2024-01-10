@@ -107,7 +107,7 @@ export default function Chats() {
       });
     setPeerConnection(pc);
     setLocalStream(stream);
-    tracks = stream.getTracks();
+    const tracks = stream.getTracks();
     tracks.forEach((track) => {
       pc.addTrack(track, stream);
     });
