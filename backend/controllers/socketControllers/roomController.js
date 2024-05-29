@@ -38,8 +38,6 @@ exports.createRoom = async (socket) => {
 exports.joinRoom = async (socket, roomId) => {
   let room;
 
-  console.log('At controller trying to join : ', roomId.roomId);
-
   try {
     room = await Room.findOne({ roomId: roomId.roomId });
   } catch (err) {
@@ -52,13 +50,12 @@ exports.joinRoom = async (socket, roomId) => {
       },
     };
   }
-
   if (!room)
     return {
       status: 'fail',
       message: {
         title: 'Chat not found',
-        description: "Sorry but this chat doesn'nt exist",
+        description: 'Sorry but this chat does not exist',
       },
     };
 

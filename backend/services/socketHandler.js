@@ -42,9 +42,9 @@ const socketHandler = (io, socket) => {
     } catch (err) {
       console.log(err);
     }
-    if (resp?.status in ['fail', 'error']) {
-      socket.emit('error', resp);
-      return;
+
+    if (resp?.status && ['fail', 'error'].includes(resp.status)) {
+      return socket.emit('error', resp);
     }
     socket.join(resp.message.data.roomId);
     io.to(resp.message.data.roomId).emit('room:joined', resp);
