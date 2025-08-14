@@ -40,31 +40,33 @@ voxel/
 
 ```mermaid
 flowchart LR
-  A[Client (Next.js)] -- Socket.IO --> S[(Signaling: Node.js)]
-  B[Client (Next.js)] -- Socket.IO --> S
+  A["Client (Next.js)"] -- "Socket.IO" --> S["Signaling: Node.js"]
+  B["Client (Next.js)"] -- "Socket.IO" --> S
   A <--> B
-  S --- STUN_TURN[(STUN/TURN)]
+  S --- STUN_TURN["STUN/TURN"]
 ```
 
 **Call setup (sequence)**
 
 ```mermaid
 sequenceDiagram
-  participant A as Client A
-  participant S as Socket.IO Server
-  participant B as Client B
+    participant A as Client A
+    participant S as Socket.IO Server
+    participant B as Client B
 
-  A->>S: join(room)
-  B->>S: join(room)
-  A->>S: webrtc:offer(sdp)
-  S-->>B: offer
-  B->>S: webrtc:answer(sdp)
-  S-->>A: answer
-  A->>S: ice-candidate
-  B->>S: ice-candidate
-  S-->>A: candidate
-  S-->>B: candidate
-  A<-->B: media + board ops (RTC DataChannel)
+    A->>S: join(room)
+    B->>S: join(room)
+    A->>S: "webrtc:offer(sdp)"
+    S-->>B: offer
+    B->>S: "webrtc:answer(sdp)"
+    S-->>A: answer
+    A->>S: ice-candidate
+    B->>S: ice-candidate
+    S-->>A: candidate
+    S-->>B: candidate
+    A-->>B: media + board ops (RTC DataChannel)
+    B-->>A: media + board ops (RTC DataChannel)
+
 ```
 
 ---
