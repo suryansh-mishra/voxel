@@ -1,6 +1,6 @@
 # voxel
 
-Realtime chat • P2P video calls • Collaborative whiteboard.
+Realtime chat • P2P video calls • collaborative whiteboard.
 Stack: **Node.js**, **Next.js**, **Socket.IO**, **WebRTC**.
 
 <p align="center">
@@ -9,19 +9,17 @@ Stack: **Node.js**, **Next.js**, **Socket.IO**, **WebRTC**.
   <a href="#"><img alt="prs" src="https://img.shields.io/badge/PRs-welcome-blueviolet"></a>
 </p>
 
-**Demo:** [https://voxel-web.vercel.app/](https://voxel-web.vercel.app/) ([voxel-web.vercel.app][2])
-
 ---
 
 ## Features
 
-* **Chat:** rooms/DMs, presence, typing, read receipts (event-driven via Socket.IO).
-* **Video/Audio:** WebRTC P2P, mute/cam toggle, screen share, network reconnection.
+* **Chat:** rooms/DMs, presence, typing, read receipts.
+* **Video/Audio:** WebRTC P2P, mute/cam toggle, screen share, reconnect.
 * **Whiteboard:** infinite canvas, pen/shapes/eraser, color/width, undo/redo, PNG export.
-* **Low latency:** DataChannel for board ops when P2P is up; Socket.IO fallback.
-* **NAT traversal:** STUN default; TURN fallback ready.
-* **Auth-ready:** JWT/session middleware slot.
-* **Ops safety:** rate limiting, CORS, env-driven config.
+* **Low latency:** RTC DataChannel for board ops; Socket.IO fallback.
+* **NAT traversal:** STUN default; TURN-ready.
+* **Auth-ready:** JWT/session pluggable.
+* **Ops safety:** rate limiting, strict CORS, env-driven config.
 
 ---
 
@@ -33,10 +31,8 @@ voxel/
 ├─ frontend/
 │  └─ voxel-web/           # Next.js app (client UI)
 ├─ package.json            # root scripts
-└─ …                       # .gitignore, workspace, etc.
+└─ ...
 ```
-
-> Source: repo index shows `backend/` and `frontend/voxel-web/`. ([GitHub][1])
 
 ---
 
@@ -46,8 +42,8 @@ voxel/
 flowchart LR
   A[Client (Next.js)] -- Socket.IO --> S[(Signaling: Node.js)]
   B[Client (Next.js)] -- Socket.IO --> S
-  A <-. WebRTC: media+DataChannel .-> B
-  S --- STUN/TURN[(STUN/TURN)]
+  A <--> B
+  S --- STUN_TURN[(STUN/TURN)]
 ```
 
 **Call setup (sequence)**
@@ -57,6 +53,7 @@ sequenceDiagram
   participant A as Client A
   participant S as Socket.IO Server
   participant B as Client B
+
   A->>S: join(room)
   B->>S: join(room)
   A->>S: webrtc:offer(sdp)
@@ -67,16 +64,16 @@ sequenceDiagram
   B->>S: ice-candidate
   S-->>A: candidate
   S-->>B: candidate
-  A<->>B: media + board ops (RTC DataChannel)
+  A<-->B: media + board ops (RTC DataChannel)
 ```
 
 ---
 
 ## Quick start (local)
 
-**Prereqs:** Node 18+, npm. (Root has `package-lock.json` → npm default.) ([GitHub][1])
+**Prereqs:** Node 18+, npm.
 
-1. Clone & install
+1. **Clone & install**
 
 ```bash
 git clone https://github.com/suryansh-mishra/voxel
@@ -84,9 +81,9 @@ cd voxel
 npm install
 ```
 
-2. Env
+2. **Env**
 
-Create `.env` files (examples below). Names may differ—adjust to your code.
+Create `.env` files (adjust names to your code if they differ).
 
 **`backend/.env`**
 
@@ -112,7 +109,7 @@ NEXT_PUBLIC_TURN_USERNAME=
 NEXT_PUBLIC_TURN_CREDENTIAL=
 ```
 
-3. Run dev (two terminals)
+3. **Run dev (two terminals)**
 
 ```bash
 # terminal 1
@@ -129,9 +126,7 @@ npm run dev
 
 ---
 
-## Scripts (suggested)
-
-In **root** `package.json` (adapt if you already have them):
+## Scripts (root suggestions)
 
 ```json
 {
@@ -145,13 +140,13 @@ In **root** `package.json` (adapt if you already have them):
 }
 ```
 
-> If using plain JS, drop `typecheck`. If using pnpm/turbo, swap accordingly.
+*If using plain JS, remove `typecheck`. If using pnpm/turbo, adjust accordingly.*
 
 ---
 
-## Event contract (Socket.IO)
+## Socket.IO events (contract)
 
-Namespace pattern: `/rtc/:roomId`
+Namespace: `/rtc/:roomId`
 
 * `user:join` → `{ userId, name }`
 * `user:leave` → `{ userId }`
@@ -167,38 +162,36 @@ Namespace pattern: `/rtc/:roomId`
 
 ## Whiteboard sync model (overview)
 
-* Local-first; drawing actions → **ops** (`addPath`, `erase`, `transform`, `style`).
-* Causality: room + user clocks; resolve with LWW for style, tombstones for deletes.
-* Transport: prefer RTC DataChannel; fallback to Socket.IO when P2P not ready.
+* Local-first; draw actions → **ops**: `addPath`, `erase`, `transform`, `style`.
+* Causality via `(roomClock, userClock)`; resolve with LWW for style, tombstones for deletes.
+* Transport: prefer **RTC DataChannel**, fallback to Socket.IO until P2P is ready.
 
 ---
 
 ## Deployment
 
-* **Frontend:** Vercel works (demo hosted there). Set `NEXT_PUBLIC_*` env. ([voxel-web.vercel.app][2])
-* **Backend:** any Node host. Expose `PORT`, enable CORS to your web origin.
-* **TURN (prod):** run coturn; set TURN envs above.
-* **Scale:** Socket.IO Redis adapter for horizontal scale; separate web and signaling.
+* **Frontend:** Vercel-compatible. Set `NEXT_PUBLIC_*`.
+* **Backend:** any Node host. Expose `PORT`; allow CORS to your web origin.
+* **TURN (prod):** run coturn; set `TURN_*` envs.
+* **Scale:** Socket.IO Redis adapter; separate web vs signaling services.
 
 ---
 
 ## Security notes
 
 * Scope room tokens by `roomId` + TTL.
-* Strict CORS. Rate-limit connects/joins/messages.
+* Strict CORS; rate-limit connects/joins/messages.
 * Media stays P2P; server only signals (TURN may relay).
-* Add profanity/abuse filters on chat events.
+* Optional profanity/abuse filters on chat events.
 
 ---
 
 ## Contributing
 
-Issues/PRs welcome. Keep diffs small, add tests for event handlers, and document new events.
+PRs welcome. Keep diffs small, add tests for event handlers, document new events.
 
 ---
 
 ## License
 
-MIT
-
----
+MIT.
